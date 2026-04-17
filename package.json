@@ -1,8 +1,14 @@
 {
   "name": "logseq-file-explorer",
   "version": "0.1.0",
-  "description": "VSCode-style file explorer in the Logseq left sidebar.",
+  "description": "Obsidian-style file explorer for Logseq's left sidebar — Files & Pages views, right-click menu, drag-and-drop.",
+  "author": "kendreaditya",
+  "license": "MIT",
   "main": "dist/index.html",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kendreaditya/logseq-file-explorer.git"
+  },
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build"
