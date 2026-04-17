@@ -1,0 +1,261 @@
+/* ========== Toolbar icon (header) ========== */
+#fe-toggle-btn.fe-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+#fe-toggle-btn.fe-toolbar-btn.is-active {
+  color: var(--ls-active-primary-color, #4493f8);
+}
+#fe-toggle-btn.fe-toolbar-btn .ui__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ========== Panel ========== */
+.fe-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--ls-secondary-background-color, var(--ls-primary-background-color));
+  color: var(--ls-primary-text-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  overflow: hidden;
+  font-size: 14px;
+  user-select: none;
+}
+.fe-panel.fe-hidden { display: none; }
+
+/* ---- Tabs (Files / Pages) ---- */
+.fe-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--ls-border-color, rgba(127,127,127,0.14));
+}
+.fe-tabs-inner {
+  display: flex;
+  gap: 2px;
+}
+.fe-tabs-actions {
+  display: flex;
+  gap: 2px;
+}
+.fe-tabs .fe-tab {
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ls-secondary-text-color, inherit);
+  opacity: 0.75;
+  transition: background 0.1s, opacity 0.1s, color 0.1s;
+}
+.fe-tabs .fe-tab:hover {
+  opacity: 1;
+  background: var(--ls-quaternary-background-color, rgba(127,127,127,0.08));
+}
+.fe-tabs .fe-tab.active {
+  background: var(--ls-tertiary-background-color, rgba(127,127,127,0.15));
+  color: var(--ls-primary-text-color);
+  opacity: 1;
+}
+.fe-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ls-secondary-text-color, inherit);
+  opacity: 0.6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.fe-tab-btn:hover {
+  opacity: 1;
+  background: var(--ls-quaternary-background-color, rgba(127,127,127,0.1));
+  color: var(--ls-primary-text-color);
+}
+
+/* ---- List / rows ---- */
+.fe-panel .monaco-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 6px 4px 10px 4px;
+}
+.fe-panel .monaco-list-rows { }
+
+.fe-panel .monaco-list-row {
+  cursor: pointer;
+  height: 28px;
+  line-height: 28px;
+  color: var(--ls-primary-text-color);
+  border-radius: 4px;
+  margin: 1px 4px;
+}
+.fe-panel .monaco-list-row:hover {
+  background: var(--ls-quaternary-background-color, rgba(127,127,127,0.1));
+}
+.fe-panel .monaco-list-row.is-active {
+  background: var(--ls-tertiary-background-color, rgba(127,127,127,0.2));
+  font-weight: 500;
+}
+
+.fe-panel .monaco-tl-row {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  position: relative;
+  padding-left: 6px;
+  padding-right: 8px;
+}
+
+/* Indent guides — very subtle on hover */
+.fe-panel .monaco-tl-indent {
+  height: 100%;
+  flex-shrink: 0;
+  display: inline-flex;
+  pointer-events: none;
+}
+.fe-panel .monaco-tl-indent .indent-guide {
+  width: 14px;
+  height: 100%;
+  box-sizing: border-box;
+  border-left: 1px solid transparent;
+  opacity: 0;
+  transition: opacity 0.1s linear;
+}
+.fe-panel .monaco-list:hover .monaco-tl-indent .indent-guide {
+  border-left-color: var(--ls-border-color, rgba(127,127,127,0.16));
+  opacity: 1;
+}
+
+/* Twistie — Tabler chevron SVG, rotates on expand */
+.fe-panel .monaco-tl-twistie {
+  width: 18px;
+  height: 100%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ls-secondary-text-color, inherit);
+  opacity: 0.55;
+}
+.fe-panel .monaco-tl-twistie svg {
+  transition: transform 0.12s ease;
+  display: block;
+}
+.fe-panel .monaco-tl-twistie.expanded svg {
+  transform: rotate(90deg);
+}
+.fe-panel .monaco-list-row:hover .monaco-tl-twistie {
+  opacity: 0.9;
+}
+
+/* Contents */
+.fe-panel .monaco-tl-contents {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  padding-left: 4px;
+}
+.fe-panel .fe-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-size: 14px;
+}
+.fe-panel .fe-folder .fe-label {
+  font-weight: 500;
+}
+.fe-panel .fe-ext {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.45;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ls-secondary-text-color, inherit);
+}
+.fe-panel .monaco-list-row:hover .fe-ext { opacity: 0.7; }
+
+.fe-panel .fe-empty {
+  padding: 12px 18px;
+  font-size: 13px;
+  opacity: 0.55;
+}
+
+/* Drag & drop */
+.fe-panel .fe-row.is-dragging { opacity: 0.5; }
+.fe-panel .fe-row.drop-target {
+  background: var(--ls-active-primary-color, rgba(55,112,208,0.18));
+  outline: 1px dashed var(--ls-active-primary-color, #4493f8);
+  outline-offset: -2px;
+}
+.fe-panel .monaco-list.drop-target {
+  outline: 1px dashed var(--ls-active-primary-color, #4493f8);
+  outline-offset: -2px;
+}
+
+/* Scrollbar */
+.fe-panel .monaco-list::-webkit-scrollbar { width: 10px; }
+.fe-panel .monaco-list::-webkit-scrollbar-track { background: transparent; }
+.fe-panel .monaco-list::-webkit-scrollbar-thumb {
+  background: rgba(127,127,127,0.22);
+  border: 3px solid transparent;
+  border-radius: 6px;
+  background-clip: content-box;
+}
+.fe-panel .monaco-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(127,127,127,0.4);
+}
+
+/* ========== Context menu ========== */
+.fe-ctx-menu {
+  position: absolute;
+  z-index: 10000;
+  min-width: 200px;
+  max-width: 320px;
+  background: var(--ls-secondary-background-color, #262626);
+  color: var(--ls-primary-text-color, #e5e5e5);
+  border: 1px solid var(--ls-border-color, rgba(127,127,127,0.3));
+  border-radius: 8px;
+  padding: 4px 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2);
+  font-size: 13px;
+  user-select: none;
+}
+.fe-ctx-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.fe-ctx-item:hover {
+  background: var(--ls-active-primary-color, rgba(55,112,208,0.4));
+  color: #fff;
+}
+.fe-ctx-item.is-disabled { opacity: 0.4; cursor: default; }
+.fe-ctx-item.is-disabled:hover { background: transparent; color: inherit; }
+.fe-ctx-arrow { opacity: 0.6; font-size: 10px; }
+.fe-ctx-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--ls-border-color, rgba(127,127,127,0.22));
+}

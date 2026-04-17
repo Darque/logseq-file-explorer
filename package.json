@@ -1,0 +1,22 @@
+{
+  "name": "logseq-file-explorer",
+  "version": "0.1.0",
+  "description": "VSCode-style file explorer in the Logseq left sidebar.",
+  "main": "dist/index.html",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@logseq/libs": "^0.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  },
+  "logseq": {
+    "id": "logseq-file-explorer",
+    "title": "File Explorer",
+    "icon": "./icon.svg"
+  }
+}
