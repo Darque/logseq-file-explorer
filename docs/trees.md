@@ -80,3 +80,8 @@ The distinction between "has `pageName`" and "`canonicalPage === true`" is subtl
 - Non-leaf → folder, click toggles `state.open` via `toggleFolder`.
 
 The `fe-ext` label (`src/render.ts:97-103`) is the obsidian-style dim extension suffix — only shown when `source === "fs"` AND the file has an extension. Pages never show an extension.
+
+
+## Name and Date views
+
+Name shows Markdown pages in physical graph folders and filename namespaces. Date shows filesystem entries grouped by modification year, month, day and hour in descending order, then physical folders and (for Markdown pages) namespaces. Contents pages sort first in each folder, followed by underscore names. Each view has its own hide-date and namespace-depth settings. Namespace depth zero keeps the full remaining name in the parent folder; a positive value creates that many namespace folders and displays the remaining namespace path with `/`.

@@ -68,6 +68,12 @@ const persist = debounce(() => {
 async function main() {
   logseq.provideStyle({ key: "fe-styles", style: cssText } as any);
 
+  (logseq as any).useSettingsSchema([
+    { key: "nameHideDate", type: "boolean", default: false, title: "Name — Hide date/time", description: "Name tab: hide modification timestamps." },
+    { key: "nameNamespaceDepth", type: "number", default: 99, title: "Name — Namespace nesting depth", description: "Name tab: 0 keeps all namespaces in the parent folder; larger values create that many namespace folders." },
+    { key: "dateHideDate", type: "boolean", default: false, title: "Date — Hide date/time", description: "Date tab: hide modification timestamps." },
+    { key: "dateNamespaceDepth", type: "number", default: 1, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps pages directly under the hour folder; larger values create that many namespace folders." },
+  ]);
   state.load(logseq.settings as any);
 
   try {
@@ -96,7 +102,7 @@ async function main() {
     },
     switchView(e: any) {
       const v = e?.dataset?.view;
-      if (v === "pages" || v === "fs") {
+      if (v === "name" || v === "date") {
         state.view = v;
         persist();
         rerender();
@@ -137,6 +143,11 @@ async function main() {
     },
   });
 
+  (logseq as any).onSettingsChanged((newSettings: any) => {
+    state.load(newSettings);
+    rerender();
+  });
+  initTooltips();
   initContextMenu(() => rerender());
   initDnd(() => rerender());
 
@@ -165,3 +176,34 @@ async function main() {
 }
 
 logseq.ready(main).catch(console.error);
+
+
+function initTooltips() {
+  try {
+    const doc = (window as any).top?.document ?? document;
+    let timer: any;
+    let tip: HTMLElement | null = null;
+    const hide = () => { clearTimeout(timer); tip?.remove(); tip = null; };
+    doc.addEventListener("pointerover", (event: PointerEvent) => {
+      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel [data-tooltip]") as HTMLElement | null;
+      if (!row) return;
+      hide();
+      timer = setTimeout(() => {
+        const element = doc.createElement("div") as HTMLElement;
+        tip = element;
+        element.className = "fe-tooltip";
+        element.textContent = row.dataset.tooltip || "";
+        doc.body.appendChild(element);
+        const rect = row.getBoundingClientRect();
+        element.style.left = `${Math.min(rect.left + 24, doc.defaultView.innerWidth - element.offsetWidth - 12)}px`;
+        element.style.top = `${Math.min(rect.bottom + 4, doc.defaultView.innerHeight - element.offsetHeight - 12)}px`;
+      }, 180);
+    });
+    doc.addEventListener("pointerout", (event: PointerEvent) => {
+      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel [data-tooltip]");
+      const next = (event.relatedTarget as HTMLElement | null)?.closest?.("#fe-panel [data-tooltip]");
+      if (row && row !== next) hide();
+    });
+    doc.addEventListener("scroll", hide, true);
+  } catch { /* noop */ }
+}

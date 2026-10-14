@@ -12,27 +12,33 @@ export async function addModifiedTimes(
   nodes: TreeNode[],
   graphPath: string | undefined,
   isOpen: (path: string) => boolean,
+  includeAll = false,
 ): Promise<void> {
   const visible: TreeNode[] = [];
   const visit = (items: TreeNode[]) => {
     for (const node of items) {
       if (node.isLeaf) visible.push(node);
-      else if (isOpen(node.path) && node.children) visit(node.children);
+      else if ((includeAll || isOpen(node.path)) && node.children) visit(node.children);
     }
   };
   visit(nodes);
 
   if (!graphPath) return;
-  await Promise.all(visible.map(async (node) => {
-    if (node.modifiedAt !== undefined || node.path.startsWith("__")) return;
-    const absPath = `${graphPath.replace(/\/+$/, "")}/${node.path}`;
-    let pending = cache.get(absPath);
-    if (!pending) {
-      pending = stat(absPath).then(parseModifiedTime);
-      cache.set(absPath, pending);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < visible.length) {
+      const node = visible[cursor++];
+      if (node.modifiedAt !== undefined || node.path.startsWith("__")) continue;
+      const absPath = `${graphPath.replace(/\/+$/, "")}/${node.path}`;
+      let pending = cache.get(absPath);
+      if (!pending) {
+        pending = stat(absPath).then(parseModifiedTime);
+        cache.set(absPath, pending);
+      }
+      node.modifiedAt = await pending;
     }
-    node.modifiedAt = await pending;
-  }));
+  };
+  await Promise.all(Array.from({ length: Math.min(12, visible.length) }, worker));
 }
 
 export function parseModifiedTime(value: any): number | undefined {
@@ -50,3 +56,57 @@ export function formatModifiedTime(timestamp: number): string {
   const two = (n: number) => String(n).padStart(2, "0");
   return `${two(date.getDate())}/${two(date.getMonth() + 1)}/${two(date.getFullYear() % 100)} ${two(date.getHours())}:${two(date.getMinutes())}`;
 }
+
+
+/** Rebuild as newest-first year/month/day/hour groups, keeping physical folders and namespaces. */
+export function dateTree(nodes: TreeNode[], namespaceDepth = 1): TreeNode[] {
+  const result: TreeNode[] = [];
+  const visit = (items: TreeNode[], physical: string[] = []) => {
+    for (const node of items) {
+      if (!node.isLeaf) {
+        visit(node.children || [], [...physical, node.name]);
+        continue;
+      }
+      if (node.modifiedAt === undefined) continue;
+      const d = new Date(node.modifiedAt);
+      const groups = [`${d.getFullYear()}`, two(d.getMonth()+1), two(d.getDate()), `${two(d.getHours())}:00`];
+      const isMarkdown = /\.md$/i.test(node.name);
+      const stem = isMarkdown ? node.name.replace(/\.md$/i, "") : node.name;
+      const fullParts = isMarkdown ? stem.split("___").filter(Boolean) : [stem];
+      const depth = isMarkdown ? Math.min(Math.max(0, Math.floor(namespaceDepth)), Math.max(0, fullParts.length - 1)) : 0;
+      const namespaceFolders = depth > 0 ? fullParts.slice(0, depth) : [];
+      const label = (depth > 0 ? fullParts.slice(depth) : fullParts).join("/") || fullParts[fullParts.length-1];
+      const leaf: TreeNode = { ...node, name: label, displayName: label, path: node.path, isLeaf: true };
+      insertPath(result, [...groups, ...physical, ...namespaceFolders], leaf);
+    }
+  };
+  visit(nodes);
+  sortDateTree(result);
+  return result;
+}
+
+function insertPath(root: TreeNode[], parts: string[], leaf: TreeNode) {
+  let list = root;
+  let path = "__date";
+  for (const name of parts) {
+    path += `/${name}`;
+    let folder = list.find((n) => !n.isLeaf && n.name === name && n.path === path);
+    if (!folder) { folder = { name, path, isLeaf: false, virtual: true, children: [] }; list.push(folder); }
+    list = folder.children!;
+  }
+  list.push(leaf);
+}
+
+function sortDateTree(nodes: TreeNode[]) {
+  nodes.sort((a, b) => {
+    const priority = (n: TreeNode) => n.name.toLowerCase() === "contents" ? 0 : n.name.startsWith("_") ? 1 : 2;
+    const p = priority(a) - priority(b);
+    if (p) return p;
+    if (a.isLeaf !== b.isLeaf) return a.isLeaf ? 1 : -1;
+    if (a.isLeaf) return (b.modifiedAt || 0) - (a.modifiedAt || 0) || a.name.localeCompare(b.name);
+    return b.name.localeCompare(a.name, undefined, { numeric: true });
+  });
+  for (const node of nodes) if (node.children) sortDateTree(node.children);
+}
+
+function two(n: number) { return String(n).padStart(2, "0"); }

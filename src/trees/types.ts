@@ -6,5 +6,7 @@ export interface TreeNode {
   canonicalPage?: boolean;
   virtual?: boolean;
   modifiedAt?: number;
+  displayName?: string;
+  sortTime?: number;
   children?: TreeNode[];
 }

@@ -2,7 +2,7 @@ import type { State } from "./state";
 import type { TreeNode } from "./trees/types";
 import { buildPagesTree } from "./trees/pagesTree";
 import { buildFsTree, extOf, stripExt } from "./trees/fsTree";
-import { addModifiedTimes, formatModifiedTime } from "./modifiedTime";
+import { addModifiedTimes, dateTree, formatModifiedTime } from "./modifiedTime";
 
 const ICON_FOLDER_CLOSED = `<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-folder" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>`;
 
@@ -24,32 +24,33 @@ export async function renderPanel(
   let body: string;
   let graphPath: string | undefined;
 
-  if (state.view === "pages") {
+  const settings = state.viewSettings[state.view];
+  if (state.view === "name") {
     const graph = await logseq.App.getCurrentGraph();
     graphPath = (graph as any)?.path;
-    const tree = await buildPagesTree();
+    const tree = await buildPagesTree(settings.namespaceDepth);
     await addModifiedTimes(tree, graphPath, (path) => state.isOpen(path));
-    body = tree.length ? renderRows(tree, 0, state, "page") : emptyRow("No pages");
+    body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate) : emptyRow("No pages");
   } else {
+    const graph = await logseq.App.getCurrentGraph();
+    graphPath = (graph as any)?.path;
     const res = await buildFsTree();
-    graphPath = res.graphPath;
-    await addModifiedTimes(res.tree, graphPath, (path) => state.isOpen(path));
-    if (res.error && !res.tree.length) body = emptyRow(res.error);
-    else
-      body = res.tree.length
-        ? renderRows(res.tree, 0, state, "fs")
-        : emptyRow("No files");
+    graphPath = res.graphPath || graphPath;
+    await addModifiedTimes(res.tree, graphPath, () => true, true);
+    const tree = dateTree(res.tree, settings.namespaceDepth);
+    if (res.error && !tree.length) body = emptyRow(res.error);
+    else body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate) : emptyRow("No dated files");
   }
 
-  const activePages = state.view === "pages" ? "active" : "";
-  const activeFs = state.view === "fs" ? "active" : "";
+  const activeName = state.view === "name" ? "active" : "";
+  const activeDate = state.view === "date" ? "active" : "";
 
   const html = `
 <div id="fe-panel" class="fe-panel" data-graph-path="${esc(graphPath || "")}">
   <div class="fe-tabs">
     <div class="fe-tabs-inner">
-      <a data-on-click="switchView" data-view="fs" class="fe-tab ${activeFs}">Files</a>
-      <a data-on-click="switchView" data-view="pages" class="fe-tab ${activePages}">Pages</a>
+      <a data-on-click="switchView" data-view="name" class="fe-tab ${activeName}">Name</a>
+      <a data-on-click="switchView" data-view="date" class="fe-tab ${activeDate}">Date</a>
     </div>
     <div class="fe-tabs-actions">
       <button class="fe-tab-btn" title="New file" data-on-click="newFile"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M12 11l0 6"/><path d="M9 14l6 0"/></svg></button>
@@ -71,8 +72,9 @@ function renderRows(
   depth: number,
   state: State,
   source: Source,
+  hideDate: boolean,
 ): string {
-  return nodes.map((n) => renderRow(n, depth, state, source)).join("");
+  return nodes.map((n) => renderRow(n, depth, state, source, hideDate)).join("");
 }
 
 function renderRow(
@@ -80,6 +82,7 @@ function renderRow(
   depth: number,
   state: State,
   source: Source,
+  hideDate: boolean,
 ): string {
   const indent = renderIndent(depth);
   if (n.isLeaf) {
@@ -103,11 +106,11 @@ function renderRow(
       : "";
     const pageAttr = n.pageName ? `data-page="${esc(n.pageName)}"` : "";
     const canonicalAttr = n.canonicalPage ? `data-canonical="1"` : "";
-    const modified = Number.isFinite(n.modifiedAt)
+    const modified = !hideDate && Number.isFinite(n.modifiedAt)
       ? `<time class="fe-modified" datetime="${new Date(n.modifiedAt!).toISOString()}">${formatModifiedTime(n.modifiedAt!)}</time>`
       : "";
 
-    return `<div class="monaco-list-row fe-row ${active}" draggable="true" data-kind="${kind}" data-source="${source}" data-path="${esc(n.path)}" ${pageAttr} ${canonicalAttr} ${click} title="${esc(n.name)}">
+    return `<div class="monaco-list-row fe-row ${active}" draggable="true" data-kind="${kind}" data-source="${source}" data-path="${esc(n.path)}" ${pageAttr} ${canonicalAttr} ${click} data-tooltip="${esc(n.displayName || n.name)}" aria-label="${esc(n.displayName || n.name)}">
       <div class="monaco-tl-row">
         ${indent}
         <div class="monaco-tl-twistie fe-spacer"></div>
@@ -123,10 +126,10 @@ function renderRow(
   const isOpen = state.isOpen(n.path);
   const twistieCls = isOpen ? "expanded" : "collapsed";
   const children = isOpen && n.children
-    ? renderRows(n.children, depth + 1, state, source)
+    ? renderRows(n.children, depth + 1, state, source, hideDate)
     : "";
 
-  return `<div class="monaco-list-row fe-row fe-folder" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" title="${esc(n.name)}">
+  return `<div class="monaco-list-row fe-row fe-folder" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" data-tooltip="${esc(n.name)}" aria-label="${esc(n.name)}">
     <div class="monaco-tl-row">
       ${indent}
       <div class="monaco-tl-twistie ${twistieCls}">${ICON_CHEVRON}</div>

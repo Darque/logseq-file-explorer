@@ -11,12 +11,12 @@
 
 ## Features
 
-- **Two views:** _Files_ (raw filesystem tree) and _Pages_ (Markdown files grouped by graph folders, then filename namespaces).
+- **Two views:** _Name_ (graph folders and namespaces) and _Date_ (edited-time folders with namespace nesting).
 - **Native feel:** matches Logseq's sidebar spacing, colors, and typography.
 - **Right-click menu:** new file/folder, duplicate, rename, move, delete, copy path, reveal in Finder, open in default app, open to the right / new window, insert link in today's journal.
 - **Drag-and-drop:** move files between folders with drop-target highlighting.
 - **Journal-aware:** files under `journals/` render with your configured date format.
-- **Edited dates:** visible file rows show local `dd/mm/yy hh:mm` timestamps in an aligned column.
+- **Edited dates:** each view can show local `dd/mm/yy hh:mm` timestamps in an aligned column, with independent namespace depth settings.
 - **Safe file ops:** canonical Logseq pages (under `pages/`, `journals/`) use Logseq's own rename/delete to keep links intact; other files use direct filesystem ops.
 - **Toolbar actions:** New file / New folder / Refresh buttons next to the tab switcher.
 - **Header toggle:** one-click show/hide button in the Logseq title bar.

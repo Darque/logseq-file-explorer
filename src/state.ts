@@ -1,14 +1,25 @@
-export type View = "pages" | "fs";
+export type View = "name" | "date";
+
+export interface ViewSettings {
+  hideDate: boolean;
+  namespaceDepth: number;
+}
 
 export interface PersistedState {
   view: View;
   panelOpen: boolean;
+  nameHideDate?: boolean; nameNamespaceDepth?: number;
+  dateHideDate?: boolean; dateNamespaceDepth?: number;
   rootCollapsed: boolean;
   openFolders: string[];
 }
 
 export class State {
-  view: View = "fs";
+  view: View = "name";
+  viewSettings: Record<View, ViewSettings> = {
+    name: { hideDate: false, namespaceDepth: 99 },
+    date: { hideDate: false, namespaceDepth: 0 },
+  };
   panelOpen = false;
   rootCollapsed = false;
   open = new Set<string>();
@@ -18,7 +29,11 @@ export class State {
 
   load(s: Partial<PersistedState> | undefined) {
     if (!s) return;
-    if (s.view === "pages" || s.view === "fs") this.view = s.view;
+    if (s.view === "name" || s.view === "date") this.view = s.view;
+    if (typeof s.nameHideDate === "boolean") this.viewSettings.name.hideDate = s.nameHideDate;
+    if (Number.isFinite(s.nameNamespaceDepth)) this.viewSettings.name.namespaceDepth = Math.max(0, Math.floor(s.nameNamespaceDepth!));
+    if (typeof s.dateHideDate === "boolean") this.viewSettings.date.hideDate = s.dateHideDate;
+    if (Number.isFinite(s.dateNamespaceDepth)) this.viewSettings.date.namespaceDepth = Math.max(0, Math.floor(s.dateNamespaceDepth!));
     if (typeof s.panelOpen === "boolean") this.panelOpen = s.panelOpen;
     if (typeof s.rootCollapsed === "boolean")
       this.rootCollapsed = s.rootCollapsed;
@@ -29,9 +44,17 @@ export class State {
     return {
       view: this.view,
       panelOpen: this.panelOpen,
+      nameHideDate: this.viewSettings.name.hideDate,
+      nameNamespaceDepth: this.viewSettings.name.namespaceDepth,
+      dateHideDate: this.viewSettings.date.hideDate,
+      dateNamespaceDepth: this.viewSettings.date.namespaceDepth,
       rootCollapsed: this.rootCollapsed,
       openFolders: [...this.open],
     };
+  }
+
+  setViewSetting(view: View, key: keyof ViewSettings, value: boolean | number) {
+    (this.viewSettings[view] as any)[key] = value;
   }
 
   toggleFolder(path: string) {

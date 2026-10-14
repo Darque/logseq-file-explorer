@@ -3,15 +3,15 @@ import { buildFsTree, stripExt } from "./fsTree";
 import { parseModifiedTime } from "../modifiedTime";
 
 /** Pages are organised by their real graph folders, then by filename namespaces. */
-export async function buildPagesTree(): Promise<TreeNode[]> {
+export async function buildPagesTree(namespaceDepth = 99): Promise<TreeNode[]> {
   const files = await buildFsTree();
-  if (files.graphPath && !files.error) return pagesFromFiles(files.tree);
+  if (files.graphPath && !files.error) return pagesFromFiles(files.tree, namespaceDepth);
 
   // DB graphs and Logseq builds without filesystem IPC still have a Pages view.
-  return pagesFromApi((await logseq.Editor.getAllPages()) || []);
+  return pagesFromApi((await logseq.Editor.getAllPages()) || [], namespaceDepth);
 }
 
-export function pagesFromFiles(files: TreeNode[]): TreeNode[] {
+export function pagesFromFiles(files: TreeNode[], namespaceDepth = 99): TreeNode[] {
   const convert = (nodes: TreeNode[]): TreeNode[] => {
     const result: TreeNode[] = [];
     for (const node of nodes) {
@@ -22,10 +22,14 @@ export function pagesFromFiles(files: TreeNode[]): TreeNode[] {
       }
       if (!/\.md$/i.test(node.name)) continue;
 
-      const parts = stripExt(node.name).split("___").filter(Boolean);
-      if (!parts.length) continue;
+      const fullParts = stripExt(node.name).split("___").filter(Boolean);
+      if (!fullParts.length) continue;
       const pageName = node.canonicalPage ? node.pageName : undefined;
-      insertPage(result, parts, pageName, node.path);
+      const nesting = Math.min(Math.max(0, namespaceDepth), Math.max(0, fullParts.length - 1));
+      const parts = nesting === 0 ? [fullParts.join("/")] : [
+        ...fullParts.slice(0, nesting), fullParts.slice(nesting).join("/"),
+      ];
+      insertPage(result, parts, pageName, node.path, node.modifiedAt, fullParts.join("/"));
     }
     sort(result);
     return result;
@@ -33,7 +37,7 @@ export function pagesFromFiles(files: TreeNode[]): TreeNode[] {
   return convert(files);
 }
 
-function pagesFromApi(pages: any[]): TreeNode[] {
+function pagesFromApi(pages: any[], namespaceDepth = 99): TreeNode[] {
   const root: TreeNode[] = [];
   const journals: TreeNode = {
     name: "journals", path: "__journals", isLeaf: false,
@@ -46,8 +50,12 @@ function pagesFromApi(pages: any[]): TreeNode[] {
       journals.children!.push({ name, path: `__journals/${name}`, isLeaf: true, pageName: name,
         modifiedAt: parseModifiedTime(page) });
     } else {
-      insertPage(root, name.split("/").filter(Boolean), name, `__page/${name}`,
-        parseModifiedTime(page));
+      const parts = name.split("/").filter(Boolean);
+      const nesting = Math.min(Math.max(0, namespaceDepth), Math.max(0, parts.length - 1));
+      const visibleParts = nesting === 0 ? [parts.join("/")] : [
+        ...parts.slice(0, nesting), parts.slice(nesting).join("/"),
+      ];
+      insertPage(root, visibleParts, name, `__page/${name}`, parseModifiedTime(page), parts.join("/"));
     }
   }
   sort(root);
@@ -57,7 +65,7 @@ function pagesFromApi(pages: any[]): TreeNode[] {
 }
 
 function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undefined,
-  filePath: string, modifiedAt?: number) {
+  filePath: string, modifiedAt?: number, displayName?: string) {
   let siblings = nodes;
   for (let i = 0; i < parts.length - 1; i++) {
     const prefix = parts.slice(0, i + 1).join("/");
@@ -70,11 +78,14 @@ function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undef
     siblings = folder.children!;
   }
   siblings.push({ name: parts[parts.length - 1], path: filePath, isLeaf: true, pageName,
-    modifiedAt });
+    modifiedAt, displayName });
 }
 
 function sort(nodes: TreeNode[]) {
   nodes.sort((a, b) => {
+    const priority = (n: TreeNode) => n.name.toLowerCase() === "contents" ? 0 : n.name.startsWith("_") ? 1 : 2;
+    const p = priority(a) - priority(b);
+    if (p) return p;
     if (a.isLeaf !== b.isLeaf) return a.isLeaf ? 1 : -1;
     return a.name.localeCompare(b.name);
   });
