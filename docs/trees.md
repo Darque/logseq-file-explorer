@@ -8,6 +8,8 @@ For file-based graphs, Pages starts with the Files tree and keeps Markdown files
 
 When the filesystem API is unavailable, Pages falls back to `logseq.Editor.getAllPages()` and groups page names by `/`. The fallback has no physical-folder information.
 
+Visible file leaves show their filesystem modification time in local system time as `dd/mm/yy hh:mm` (24-hour clock). A right-aligned date column keeps times lined up across each folder and namespace group even when labels have different lengths. The plugin requests `stat` only for leaves in expanded folders and caches the result until Refresh or a graph/database change. In the API-only fallback, dates use the page's `updatedAt` value when Logseq provides one.
+
 - Journal files stay in their physical `journals` folder. In the API fallback, journal pages use a synthetic `journals` root.
 - In the API fallback, pages whose name starts with `$` are skipped; these are internal Logseq system pages.
 

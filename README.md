@@ -16,6 +16,7 @@
 - **Right-click menu:** new file/folder, duplicate, rename, move, delete, copy path, reveal in Finder, open in default app, open to the right / new window, insert link in today's journal.
 - **Drag-and-drop:** move files between folders with drop-target highlighting.
 - **Journal-aware:** files under `journals/` render with your configured date format.
+- **Edited dates:** visible file rows show local `dd/mm/yy hh:mm` timestamps in an aligned column.
 - **Safe file ops:** canonical Logseq pages (under `pages/`, `journals/`) use Logseq's own rename/delete to keep links intact; other files use direct filesystem ops.
 - **Toolbar actions:** New file / New folder / Refresh buttons next to the tab switcher.
 - **Header toggle:** one-click show/hide button in the Logseq title bar.

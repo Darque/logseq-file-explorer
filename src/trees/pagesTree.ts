@@ -1,5 +1,6 @@
 import type { TreeNode } from "./types";
 import { buildFsTree, stripExt } from "./fsTree";
+import { parseModifiedTime } from "../modifiedTime";
 
 /** Pages are organised by their real graph folders, then by filename namespaces. */
 export async function buildPagesTree(): Promise<TreeNode[]> {
@@ -42,9 +43,11 @@ function pagesFromApi(pages: any[]): TreeNode[] {
     const name: string = page.originalName ?? page.name ?? "";
     if (!name || name.startsWith("$")) continue;
     if (page["journal?"] || page.journal) {
-      journals.children!.push({ name, path: `__journals/${name}`, isLeaf: true, pageName: name });
+      journals.children!.push({ name, path: `__journals/${name}`, isLeaf: true, pageName: name,
+        modifiedAt: parseModifiedTime(page) });
     } else {
-      insertPage(root, name.split("/").filter(Boolean), name, `__page/${name}`);
+      insertPage(root, name.split("/").filter(Boolean), name, `__page/${name}`,
+        parseModifiedTime(page));
     }
   }
   sort(root);
@@ -53,7 +56,8 @@ function pagesFromApi(pages: any[]): TreeNode[] {
   return root;
 }
 
-function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undefined, filePath: string) {
+function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undefined,
+  filePath: string, modifiedAt?: number) {
   let siblings = nodes;
   for (let i = 0; i < parts.length - 1; i++) {
     const prefix = parts.slice(0, i + 1).join("/");
@@ -65,7 +69,8 @@ function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undef
     }
     siblings = folder.children!;
   }
-  siblings.push({ name: parts[parts.length - 1], path: filePath, isLeaf: true, pageName });
+  siblings.push({ name: parts[parts.length - 1], path: filePath, isLeaf: true, pageName,
+    modifiedAt });
 }
 
 function sort(nodes: TreeNode[]) {

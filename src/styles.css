@@ -191,6 +191,19 @@
 }
 .fe-panel .monaco-list-row:hover .fe-ext { opacity: 0.7; }
 
+.fe-panel .fe-modified {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--ls-secondary-text-color, inherit);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  opacity: 0.7;
+  white-space: nowrap;
+  text-align: right;
+}
+
 .fe-panel .fe-empty {
   padding: 12px 18px;
   font-size: 13px;

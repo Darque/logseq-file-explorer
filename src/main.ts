@@ -5,6 +5,7 @@ import { initContextMenu } from "./contextMenu";
 import { initDnd } from "./dnd";
 import { createNewFile, createNewFolder } from "./newItem";
 import cssText from "./styles.css?raw";
+import { clearModifiedTimeCache } from "./modifiedTime";
 
 const HEADER_SELECTOR = ".cp__header .l.drag-region";
 const PANEL_SELECTOR = ".left-sidebar-inner > .flex.flex-col.wrap";
@@ -131,6 +132,7 @@ async function main() {
       rerender();
     },
     refresh() {
+      clearModifiedTimeCache();
       rerender();
     },
   });
@@ -141,6 +143,7 @@ async function main() {
   await rerender();
 
   logseq.App.onCurrentGraphChanged(async () => {
+    clearModifiedTimeCache();
     const g = await logseq.App.getCurrentGraph();
     state.graphName = (g as any)?.name ?? "graph";
     rerender();
@@ -155,7 +158,10 @@ async function main() {
   logseq.App.onSidebarVisibleChanged(() => rerender());
 
   const debouncedRerender = debounce(() => rerender(), 500);
-  logseq.DB.onChanged(() => debouncedRerender());
+  logseq.DB.onChanged(() => {
+    clearModifiedTimeCache();
+    debouncedRerender();
+  });
 }
 
 logseq.ready(main).catch(console.error);
