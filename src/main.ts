@@ -72,7 +72,8 @@ async function main() {
     { key: "nameHideDate", type: "boolean", default: false, title: "Name — Hide date/time", description: "Name tab: hide modification timestamps." },
     { key: "nameNamespaceDepth", type: "number", default: 99, title: "Name — Namespace nesting depth", description: "Name tab: 0 keeps all namespaces in the parent folder; larger values create that many namespace folders." },
     { key: "dateHideDate", type: "boolean", default: false, title: "Date — Hide date/time", description: "Date tab: hide modification timestamps." },
-    { key: "dateNamespaceDepth", type: "number", default: 0, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps pages directly under the hour folder; larger values create that many namespace folders." },
+    { key: "dateNamespaceDepth", type: "number", default: 0, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps pages directly under the date or hour folder; larger values create that many namespace folders." },
+    { key: "dateRecentHours", type: "number", default: 24, title: "Date — Recent edits (hours)", description: "Edits within this many hours use hour folders; earlier edits in the recent week window use day folders." },
     { key: "dateRecentWeeks", type: "number", default: 1, title: "Date — Recent edits (weeks)", description: "Older files are grouped into one folder. The cutoff is recalculated when the tree loads or refreshes." },
   ]);
   state.load(logseq.settings as any);
@@ -135,6 +136,13 @@ async function main() {
       const delta = Number(e?.dataset?.delta);
       if (!Number.isFinite(delta)) return;
       state.dateRecentWeeks = Math.max(0, state.dateRecentWeeks + delta);
+      persist();
+      rerender();
+    },
+    changeRecentHours(e: any) {
+      const delta = Number(e?.dataset?.delta);
+      if (!Number.isFinite(delta)) return;
+      state.dateRecentHours = Math.max(0, state.dateRecentHours + delta);
       persist();
       rerender();
     },
@@ -212,12 +220,18 @@ function initTooltips() {
     const doc = (window as any).top?.document ?? document;
     let timer: any;
     let tip: HTMLElement | null = null;
-    const hide = () => { clearTimeout(timer); tip?.remove(); tip = null; };
+    let hoveredRow: HTMLElement | null = null;
+    const hide = () => { clearTimeout(timer); tip?.remove(); tip = null; hoveredRow = null; };
     doc.addEventListener("pointerover", (event: PointerEvent) => {
-      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel [data-tooltip]") as HTMLElement | null;
+      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]") as HTMLElement | null;
       if (!row) return;
+      if (row === hoveredRow) return;
       hide();
+      const label = row.querySelector(".fe-label") as HTMLElement | null;
+      if (!label || label.scrollWidth <= label.clientWidth + 1) return;
+      hoveredRow = row;
       timer = setTimeout(() => {
+        if (!row.isConnected || hoveredRow !== row) return;
         const element = doc.createElement("div") as HTMLElement;
         tip = element;
         element.className = "fe-tooltip";
@@ -226,11 +240,11 @@ function initTooltips() {
         const rect = row.getBoundingClientRect();
         element.style.left = `${Math.min(rect.left + 24, doc.defaultView.innerWidth - element.offsetWidth - 12)}px`;
         element.style.top = `${Math.min(rect.bottom + 4, doc.defaultView.innerHeight - element.offsetHeight - 12)}px`;
-      }, 180);
+      }, 2000);
     });
     doc.addEventListener("pointerout", (event: PointerEvent) => {
-      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel [data-tooltip]");
-      const next = (event.relatedTarget as HTMLElement | null)?.closest?.("#fe-panel [data-tooltip]");
+      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]");
+      const next = (event.relatedTarget as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]");
       if (row && row !== next) hide();
     });
     doc.addEventListener("scroll", hide, true);

@@ -58,9 +58,10 @@ export function formatModifiedTime(timestamp: number): string {
 }
 
 
-/** Group every file by its local edited hour, ignoring physical folders. */
-export function dateTree(nodes: TreeNode[], namespaceDepth = 1, recentWeeks = 1): TreeNode[] {
+/** Group recent edits by local hour, then day, ignoring physical folders. */
+export function dateTree(nodes: TreeNode[], namespaceDepth = 1, recentWeeks = 1, recentHours = 24): TreeNode[] {
   const result: TreeNode[] = [];
+  const hourCutoff = Date.now() - Math.max(0, Math.floor(recentHours)) * 60 * 60 * 1000;
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - 7 * Math.max(0, Math.floor(recentWeeks)));
@@ -73,8 +74,11 @@ export function dateTree(nodes: TreeNode[], namespaceDepth = 1, recentWeeks = 1)
       if (node.modifiedAt === undefined) continue;
       const d = new Date(node.modifiedAt);
       const hour = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime();
+      const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
       const older = node.modifiedAt < cutoff.getTime();
-      const group = older ? "Older files" : `${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)} ${two(d.getHours())}:00`;
+      const byHour = !older && node.modifiedAt >= hourCutoff;
+      const dateLabel = `${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)}`;
+      const group = older ? "Older files" : byHour ? `${dateLabel} ${two(d.getHours())}:00` : dateLabel;
       const isMarkdown = /\.md$/i.test(node.name);
       const stem = isMarkdown ? node.name.replace(/\.md$/i, "") : node.name;
       const fullParts = isMarkdown ? stem.split("___").filter(Boolean) : [stem];
@@ -82,7 +86,7 @@ export function dateTree(nodes: TreeNode[], namespaceDepth = 1, recentWeeks = 1)
       const namespaceFolders = depth > 0 ? fullParts.slice(0, depth) : [];
       const label = (depth > 0 ? fullParts.slice(depth) : fullParts).join("/") || fullParts[fullParts.length-1];
       const leaf: TreeNode = { ...node, name: label, displayName: label, path: node.path, isLeaf: true };
-      insertPath(result, [group, ...namespaceFolders], leaf, older ? -1 : hour);
+      insertPath(result, [group, ...namespaceFolders], leaf, older ? -1 : byHour ? hour : day);
     }
   };
   visit(nodes);
@@ -90,13 +94,13 @@ export function dateTree(nodes: TreeNode[], namespaceDepth = 1, recentWeeks = 1)
   return result;
 }
 
-function insertPath(root: TreeNode[], parts: string[], leaf: TreeNode, hour: number) {
+function insertPath(root: TreeNode[], parts: string[], leaf: TreeNode, sortTime: number) {
   let list = root;
   let path = "__date";
   for (const name of parts) {
     path += `/${name}`;
     let folder = list.find((n) => !n.isLeaf && n.name === name && n.path === path);
-    if (!folder) { folder = { name, path, isLeaf: false, virtual: true, children: [], sortTime: hour }; list.push(folder); }
+    if (!folder) { folder = { name, path, isLeaf: false, virtual: true, children: [], sortTime }; list.push(folder); }
     list = folder.children!;
   }
   list.push(leaf);

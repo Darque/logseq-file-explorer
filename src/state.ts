@@ -11,6 +11,7 @@ export interface PersistedState {
   nameHideDate?: boolean; nameNamespaceDepth?: number;
   dateHideDate?: boolean; dateNamespaceDepth?: number;
   dateRecentWeeks?: number;
+  dateRecentHours?: number;
   rootCollapsed: boolean;
   openFolders: string[];
 }
@@ -22,6 +23,7 @@ export class State {
     date: { hideDate: false, namespaceDepth: 0 },
   };
   dateRecentWeeks = 1;
+  dateRecentHours = 24;
   panelOpen = false;
   settingsOpen = false;
   rootCollapsed = false;
@@ -38,6 +40,7 @@ export class State {
     if (typeof s.dateHideDate === "boolean") this.viewSettings.date.hideDate = s.dateHideDate;
     if (Number.isFinite(s.dateNamespaceDepth)) this.viewSettings.date.namespaceDepth = Math.max(0, Math.floor(s.dateNamespaceDepth!));
     if (Number.isFinite(s.dateRecentWeeks)) this.dateRecentWeeks = Math.max(0, Math.floor(s.dateRecentWeeks!));
+    if (Number.isFinite(s.dateRecentHours)) this.dateRecentHours = Math.max(0, Math.floor(s.dateRecentHours!));
     if (typeof s.panelOpen === "boolean") this.panelOpen = s.panelOpen;
     if (typeof s.rootCollapsed === "boolean")
       this.rootCollapsed = s.rootCollapsed;
@@ -53,6 +56,7 @@ export class State {
       dateHideDate: this.viewSettings.date.hideDate,
       dateNamespaceDepth: this.viewSettings.date.namespaceDepth,
       dateRecentWeeks: this.dateRecentWeeks,
+      dateRecentHours: this.dateRecentHours,
       rootCollapsed: this.rootCollapsed,
       openFolders: [...this.open],
     };

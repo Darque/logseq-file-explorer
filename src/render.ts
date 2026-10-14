@@ -39,7 +39,7 @@ export async function renderPanel(
     const res = await buildFsTree();
     graphPath = res.graphPath || graphPath;
     await addModifiedTimes(res.tree, graphPath, () => true, true);
-    const tree = dateTree(res.tree, settings.namespaceDepth, state.dateRecentWeeks);
+    const tree = dateTree(res.tree, settings.namespaceDepth, state.dateRecentWeeks, state.dateRecentHours);
     if (res.error && !tree.length) body = emptyRow(res.error);
     else body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate) : emptyRow("No dated files");
   }
@@ -83,13 +83,17 @@ function renderSettings(state: State): string {
           <button data-on-click="changeDepth" data-view="${view}" data-delta="1" title="Increase nesting">+</button>
           <button data-on-click="changeDepth" data-view="${view}" data-value="all" title="Nest all namespaces">All</button>
         </div></div>
-        ${view === "date" ? `<div class="fe-setting-counter"><span>Recent edits (weeks)</span><div class="fe-counter-actions">
+        ${view === "date" ? `<div class="fe-setting-counter"><span>Recent edits (hours)</span><div class="fe-counter-actions">
+          <button data-on-click="changeRecentHours" data-delta="-1" title="Fewer hours">−</button>
+          <output>${state.dateRecentHours}</output>
+          <button data-on-click="changeRecentHours" data-delta="1" title="More hours">+</button>
+        </div></div><div class="fe-setting-counter"><span>Recent edits (weeks)</span><div class="fe-counter-actions">
           <button data-on-click="changeRecentWeeks" data-delta="-1" title="Fewer weeks">−</button>
           <output>${state.dateRecentWeeks}</output>
           <button data-on-click="changeRecentWeeks" data-delta="1" title="More weeks">+</button>
         </div></div>` : ""}
         <p>0 keeps the namespace in the file name. Each higher level creates one namespace folder.</p>
-        ${view === "date" ? "<p>Files edited before the recent window appear in one Older files folder. The cutoff is recalculated when the tree loads or refreshes.</p>" : ""}
+        ${view === "date" ? "<p>Edits within the hour window use hour folders. Other edits within the week window use day folders. Earlier files appear in Older files. Cutoffs are recalculated when the tree loads or refreshes.</p>" : ""}
       </section>`;
     }).join("")}
   </div>`;
@@ -159,7 +163,7 @@ function renderRow(
     ? renderRows(n.children, depth + 1, state, source, hideDate)
     : "";
 
-  return `<div class="monaco-list-row fe-row fe-folder" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" data-tooltip="${esc(n.name)}" aria-label="${esc(n.name)}">
+  return `<div class="monaco-list-row fe-row fe-folder" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" aria-label="${esc(n.name)}">
     <div class="monaco-tl-row">
       ${indent}
       <div class="monaco-tl-twistie ${twistieCls}">${ICON_CHEVRON}</div>
