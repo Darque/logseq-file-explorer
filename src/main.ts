@@ -218,10 +218,9 @@ logseq.ready(main).catch(console.error);
 function initTooltips() {
   try {
     const doc = (window as any).top?.document ?? document;
-    let timer: any;
     let tip: HTMLElement | null = null;
     let hoveredRow: HTMLElement | null = null;
-    const hide = () => { clearTimeout(timer); tip?.remove(); tip = null; hoveredRow = null; };
+    const hide = () => { tip?.remove(); tip = null; hoveredRow = null; };
     doc.addEventListener("pointerover", (event: PointerEvent) => {
       const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]") as HTMLElement | null;
       if (!row) return;
@@ -230,17 +229,14 @@ function initTooltips() {
       const label = row.querySelector(".fe-label") as HTMLElement | null;
       if (!label || label.scrollWidth <= label.clientWidth + 1) return;
       hoveredRow = row;
-      timer = setTimeout(() => {
-        if (!row.isConnected || hoveredRow !== row) return;
-        const element = doc.createElement("div") as HTMLElement;
-        tip = element;
-        element.className = "fe-tooltip";
-        element.textContent = row.dataset.tooltip || "";
-        doc.body.appendChild(element);
-        const rect = row.getBoundingClientRect();
-        element.style.left = `${Math.min(rect.left + 24, doc.defaultView.innerWidth - element.offsetWidth - 12)}px`;
-        element.style.top = `${Math.min(rect.bottom + 4, doc.defaultView.innerHeight - element.offsetHeight - 12)}px`;
-      }, 2000);
+      const element = doc.createElement("div") as HTMLElement;
+      tip = element;
+      element.className = "fe-tooltip";
+      element.textContent = row.dataset.tooltip || "";
+      doc.body.appendChild(element);
+      const rect = row.getBoundingClientRect();
+      element.style.left = `${Math.min(rect.left + 24, doc.defaultView.innerWidth - element.offsetWidth - 12)}px`;
+      element.style.top = `${Math.min(rect.bottom + 4, doc.defaultView.innerHeight - element.offsetHeight - 12)}px`;
     });
     doc.addEventListener("pointerout", (event: PointerEvent) => {
       const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]");

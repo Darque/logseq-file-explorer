@@ -132,9 +132,8 @@ function renderRow(
       : `data-on-click="openFile" data-path="${esc(n.path)}"`;
     const ext = extOf(n.name);
     const showExt = source === "fs" && !!ext;
-    const label = source === "fs" && ext
-      ? esc(stripExt(n.name))
-      : esc(displayName(n.name));
+    const labelText = showExt ? stripExt(n.name) : displayName(n.name);
+    const label = esc(labelText);
     const extSpan = showExt
       ? `<span class="fe-ext">${esc(ext)}</span>`
       : "";
@@ -144,7 +143,7 @@ function renderRow(
       ? `<time class="fe-modified" datetime="${new Date(n.modifiedAt!).toISOString()}">${formatModifiedTime(n.modifiedAt!)}</time>`
       : "";
 
-    return `<div class="monaco-list-row fe-row ${active}" draggable="true" data-kind="${kind}" data-source="${source}" data-path="${esc(n.path)}" ${pageAttr} ${canonicalAttr} ${click} data-tooltip="${esc(n.displayName || n.name)}" aria-label="${esc(n.displayName || n.name)}">
+    return `<div class="monaco-list-row fe-row ${active}" draggable="true" data-kind="${kind}" data-source="${source}" data-path="${esc(n.path)}" ${pageAttr} ${canonicalAttr} ${click} data-tooltip="${esc(labelText)}" aria-label="${esc(n.displayName || n.name)}">
       <div class="monaco-tl-row">
         ${indent}
         <div class="monaco-tl-twistie fe-spacer"></div>
