@@ -99,6 +99,8 @@
 .fe-settings h2 { font-size: 15px; font-weight: 600; margin: 2px 0 16px; }
 .fe-settings-section { margin: 0 0 22px; }
 .fe-settings-section h3 { font-size: 14px; font-weight: 600; margin: 0 0 10px; }
+.fe-folder-options { margin-top: 8px; }
+.fe-folder-options .fe-setting-check { margin: 4px 0; }
 .fe-setting-check, .fe-setting-counter { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0; font-size: 13px; }
 .fe-setting-check { padding: 2px 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .fe-checkbox { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid var(--ls-border-color, rgba(127,127,127,.5)); border-radius: 3px; }

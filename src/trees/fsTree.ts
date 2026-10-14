@@ -1,12 +1,10 @@
 import type { TreeNode } from "./types";
-import { readdir } from "../fsOps";
+import { readdir, stat } from "../fsOps";
 import { state } from "../state";
-
-const IGNORED = new Set([".git", "node_modules", ".DS_Store", ".obsidian", "logseq"]);
-const IGNORED_PREFIXES: string[] = [];
 
 export async function buildFsTree(): Promise<{
   tree: TreeNode[];
+  rootFolders: string[];
   error?: string;
   graphPath?: string;
 }> {
@@ -15,6 +13,7 @@ export async function buildFsTree(): Promise<{
   if (!root) {
     return {
       tree: [],
+      rootFolders: [],
       error: "Files view requires a file-based graph.",
     };
   }
@@ -23,6 +22,7 @@ export async function buildFsTree(): Promise<{
   if (!raw) {
     return {
       tree: [],
+      rootFolders: [],
       error: "Filesystem API unavailable in this Logseq build.",
       graphPath: root,
     };
@@ -30,15 +30,27 @@ export async function buildFsTree(): Promise<{
 
   const paths = normalizeReaddir(raw);
   if (!paths.length) {
-    return { tree: [], error: "No files found.", graphPath: root };
+    return { tree: [], rootFolders: [], error: "No files found.", graphPath: root };
   }
 
-  const rel = paths
-    .map((abs) => toRelative(abs, root))
-    .filter((p) => p && !isIgnored(p));
+  const relativePaths = paths.map((abs) => toRelative(abs, root)).filter(Boolean);
+  const rootFolders = new Set(relativePaths.filter((p) => p.includes("/")).map((p) => p.split("/")[0]));
+  const rootEntries = relativePaths.filter((p) => !p.includes("/"));
+  await Promise.all(rootEntries.map(async (entry) => {
+    const info = await stat(`${root.replace(/\/+$/, "")}/${entry}`);
+    if ((typeof info?.isDirectory === "function" && info.isDirectory()) || info?.isDirectory === true ||
+      info?.type === "directory" || (typeof info?.mode === "number" && (info.mode & 0o170000) === 0o040000)) {
+      rootFolders.add(entry);
+    }
+  }));
+  const folders = [...rootFolders].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const rel = relativePaths.filter((p) => {
+    const slash = p.indexOf("/");
+    return slash > 0 && state.isRootFolderSelected(root, p.slice(0, slash)) && !p.endsWith("/.DS_Store");
+  });
 
   const tree = buildTree(rel);
-  return { tree, graphPath: root };
+  return { tree, rootFolders: folders, graphPath: root };
 }
 
 function normalizeReaddir(raw: any): string[] {
@@ -55,16 +67,6 @@ function toRelative(abs: string, root: string): string {
   if (abs.startsWith(rootNorm + "/")) return abs.slice(rootNorm.length + 1);
   if (abs === rootNorm) return "";
   return abs;
-}
-
-function isIgnored(rel: string): boolean {
-  const parts = rel.split("/");
-  if (parts.some((p) => IGNORED.has(p))) return true;
-  if (parts[parts.length - 1].startsWith(".")) return true;
-  for (const p of IGNORED_PREFIXES) {
-    if (rel.startsWith(p + "/") || rel === p) return true;
-  }
-  return false;
 }
 
 function buildTree(paths: string[]): TreeNode[] {

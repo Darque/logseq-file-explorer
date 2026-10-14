@@ -26,8 +26,11 @@ export async function renderPanel(
 
   const settings = state.viewSettings[state.view];
   if (state.settingsOpen) {
+    const files = await buildFsTree();
+    graphPath = files.graphPath;
+    state.graphPath = graphPath || "";
     state.maxNamespaceDepth = await getMaxNamespaceDepth();
-    body = renderSettings(state);
+    body = renderSettings(state, files.rootFolders, graphPath);
   } else if (state.view === "name") {
     const graph = await logseq.App.getCurrentGraph();
     graphPath = (graph as any)?.path;
@@ -71,17 +74,27 @@ export async function renderPanel(
   return { html, graphPath };
 }
 
-function renderSettings(state: State): string {
+function renderSettings(state: State, rootFolders: string[], graphPath?: string): string {
   return `<div class="fe-settings">
     <h2>File Explorer settings</h2>
+    <section class="fe-settings-section">
+      <h3>Graph folders</h3>
+      <p>Only files inside checked folders appear in the Name and Date trees.</p>
+      ${!graphPath ? "<p>Folder selection requires a file-based graph.</p>" : rootFolders.length
+        ? `<div class="fe-folder-options">${rootFolders.map((folder) => {
+            const checked = state.isRootFolderSelected(graphPath, folder);
+            return `<button class="fe-setting-check" role="checkbox" aria-checked="${checked}" data-on-click="toggleRootFolder" data-folder="${esc(folder)}"><span class="fe-checkbox">${checked ? "✓" : ""}</span><span>${esc(folder)}</span></button>`;
+          }).join("")}</div>`
+        : "<p>No folders found in this graph.</p>"}
+    </section>
     ${(["name", "date"] as const).map((view) => {
       const settings = state.viewSettings[view];
       return `<section class="fe-settings-section">
         <h3>${view === "name" ? "Name" : "Date"} tab</h3>
         <button class="fe-setting-check" role="checkbox" aria-checked="${settings.hideDate}" data-on-click="toggleHideDate" data-view="${view}"><span class="fe-checkbox">${settings.hideDate ? "✓" : ""}</span> Hide file date/time</button>
         <div class="fe-setting-counter"><span>Namespace nest depth</span><div class="fe-counter-actions">
-          <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="${view === "name" ? "Name" : "Date"} namespace nest depth" data-on-change="changeDepth" data-view="${view}" value="${settings.namespaceDepth === 99 ? "All" : settings.namespaceDepth}">
           <button data-on-click="changeDepth" data-view="${view}" data-value="all" title="Nest all namespaces">All</button>
+          <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="${view === "name" ? "Name" : "Date"} namespace nest depth" data-on-change="changeDepth" data-view="${view}" value="${settings.namespaceDepth === 99 ? "All" : settings.namespaceDepth}">
         </div></div>
         ${view === "date" ? `<div class="fe-setting-counter"><span>Recent edits (hours)</span><div class="fe-counter-actions">
           <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Recent edits in hours" data-on-change="changeRecentHours" value="${state.dateRecentHours}">

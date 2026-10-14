@@ -17,6 +17,7 @@
 - **Drag-and-drop:** move files between folders with drop-target highlighting.
 - **Journal-aware:** files under `journals/` render with your configured date format.
 - **Edited dates:** each view can show local `dd/mm/yy hh:mm` timestamps in an aligned column, with independent namespace depth settings.
+- **Graph folder filter:** check the graph's root folders in File Explorer settings to choose which files appear in both trees. The list updates when the tree refreshes or the graph changes; choices are saved per graph. Logseq's metadata folder starts unchecked.
 - **Safe file ops:** canonical Logseq pages (under `pages/`, `journals/`) use Logseq's own rename/delete to keep links intact; other files use direct filesystem ops.
 - **Toolbar actions:** New file / New folder / Refresh buttons next to the tab switcher.
 - **Header toggle:** one-click show/hide button in the Logseq title bar.
@@ -52,14 +53,14 @@ Reload the plugin from the Plugins page after each rebuild.
 Logseq exposes no official API to add a section to the left sidebar. This plugin uses `logseq.provideUI({ path, template })` to inject HTML into the host document's `.left-sidebar-inner` container, and talks to Logseq's Electron IPC bridge (`window.top.apis.doAction(...)`) for filesystem operations that the public plugin API doesn't cover (readdir, mkdir, rename, unlink, copyFile, openPath, openFileInFolder).
 
 - **Pages tree:** for file-based graphs, Markdown files follow their real folders and then split `___` filename namespaces into nested groups. DB graphs fall back to `logseq.Editor.getAllPages()` split by `/`.
-- **Files tree:** `readdir` IPC against the graph root, filtered to skip `.git`, `node_modules`, `logseq/`, etc.
+- **Folder source:** `readdir` IPC against the graph root supplies both trees. Only files inside checked root folders are included; loose files at the graph root are omitted.
 - **Click handlers:** `logseq.provideModel` with `data-on-click` attributes.
 - **Theme-safe:** all styles use Logseq's CSS variables (`--ls-*`).
 
 ## Limitations
 
 - The sidebar selector (`.left-sidebar-inner > .flex.flex-col.wrap`) is unofficial — a Logseq UI refactor could break rendering.
-- Files view needs a file-based graph (not DB-only).
+- The Date view and graph-folder filter need a file-based graph (not DB-only).
 - Folder rename is not yet supported from the context menu (only file/page rename).
 
 ## License

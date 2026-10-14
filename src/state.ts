@@ -14,6 +14,7 @@ export interface PersistedState {
   dateRecentHours?: number;
   rootCollapsed: boolean;
   openFolders: string[];
+  folderSelections?: Record<string, Record<string, boolean>>;
 }
 
 export class State {
@@ -29,6 +30,8 @@ export class State {
   settingsOpen = false;
   rootCollapsed = false;
   open = new Set<string>();
+  folderSelections: Record<string, Record<string, boolean>> = {};
+  graphPath = "";
   currentPage: string | null = null;
   graphName: string = "";
   dateFormat: string = "MMM do, yyyy";
@@ -46,6 +49,9 @@ export class State {
     if (typeof s.rootCollapsed === "boolean")
       this.rootCollapsed = s.rootCollapsed;
     if (Array.isArray(s.openFolders)) this.open = new Set(s.openFolders);
+    if (s.folderSelections && typeof s.folderSelections === "object" && !Array.isArray(s.folderSelections)) {
+      this.folderSelections = s.folderSelections;
+    }
   }
 
   dump(): PersistedState {
@@ -60,6 +66,7 @@ export class State {
       dateRecentHours: this.dateRecentHours,
       rootCollapsed: this.rootCollapsed,
       openFolders: [...this.open],
+      folderSelections: this.folderSelections,
     };
   }
 
@@ -74,6 +81,16 @@ export class State {
 
   isOpen(path: string) {
     return this.open.has(path);
+  }
+
+  isRootFolderSelected(graphPath: string, folder: string): boolean {
+    const saved = this.folderSelections[graphPath]?.[folder];
+    return typeof saved === "boolean" ? saved : !["logseq", ".git", ".obsidian", "node_modules"].includes(folder);
+  }
+
+  toggleRootFolder(graphPath: string, folder: string): void {
+    const selections = this.folderSelections[graphPath] ??= {};
+    selections[folder] = !this.isRootFolderSelected(graphPath, folder);
   }
 }
 

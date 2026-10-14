@@ -138,6 +138,13 @@ async function main() {
       persist();
       rerender();
     },
+    toggleRootFolder(e: any) {
+      const folder = e?.dataset?.folder;
+      if (!state.graphPath || typeof folder !== "string" || !folder || folder.includes("/")) return;
+      state.toggleRootFolder(state.graphPath, folder);
+      persist();
+      rerender();
+    },
     changeDepth(e: any) {
       const view = e?.dataset?.view as View;
       if (view !== "name" && view !== "date") return;
