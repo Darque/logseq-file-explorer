@@ -3,18 +3,14 @@ import type { TreeNode } from "./trees/types";
 import { buildPagesTree } from "./trees/pagesTree";
 import { buildFsTree, extOf, stripExt } from "./trees/fsTree";
 
-const ICON_FOLDER_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-folder-open" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"/></svg>`;
-
 const ICON_FOLDER_CLOSED = `<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-folder" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>`;
 
 const ICON_CHEVRON = `<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chevron-right" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="9 6 15 12 9 18"/></svg>`;
 
 export function renderHeaderButton(state: State): string {
-  const active = state.panelOpen ? "is-active" : "";
-  const icon = state.panelOpen ? ICON_FOLDER_OPEN : ICON_FOLDER_CLOSED;
   const title = state.panelOpen ? "Close File Explorer" : "Open File Explorer";
-  return `<button id="fe-toggle-btn" title="${title}" class="button icon fe-toolbar-btn ${active}" data-on-click="togglePanel">
-    <span class="ui__icon ti">${icon}</span>
+  return `<button id="fe-toggle-btn" title="${title}" aria-label="${title}" aria-pressed="${state.panelOpen}" class="button icon fe-toolbar-btn" data-on-click="togglePanel">
+    ${ICON_FOLDER_CLOSED}
   </button>`;
 }
 
@@ -29,6 +25,8 @@ export async function renderPanel(
   let graphPath: string | undefined;
 
   if (state.view === "pages") {
+    const graph = await logseq.App.getCurrentGraph();
+    graphPath = (graph as any)?.path;
     const tree = await buildPagesTree();
     body = tree.length ? renderRows(tree, 0, state, "page") : emptyRow("No pages");
   } else {
@@ -122,7 +120,7 @@ function renderRow(
     ? renderRows(n.children, depth + 1, state, source)
     : "";
 
-  return `<div class="monaco-list-row fe-row fe-folder" draggable="true" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" data-on-click="toggleFolder" title="${esc(n.name)}">
+  return `<div class="monaco-list-row fe-row fe-folder" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" title="${esc(n.name)}">
     <div class="monaco-tl-row">
       ${indent}
       <div class="monaco-tl-twistie ${twistieCls}">${ICON_CHEVRON}</div>

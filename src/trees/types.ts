@@ -4,5 +4,6 @@ export interface TreeNode {
   isLeaf: boolean;
   pageName?: string;
   canonicalPage?: boolean;
+  virtual?: boolean;
   children?: TreeNode[];
 }

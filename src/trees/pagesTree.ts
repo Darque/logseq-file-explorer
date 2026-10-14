@@ -1,72 +1,77 @@
 import type { TreeNode } from "./types";
+import { buildFsTree, stripExt } from "./fsTree";
 
+/** Pages are organised by their real graph folders, then by filename namespaces. */
 export async function buildPagesTree(): Promise<TreeNode[]> {
-  const pages = (await logseq.Editor.getAllPages()) || [];
-  const root: TreeNode = { name: "", path: "", isLeaf: false, children: [] };
+  const files = await buildFsTree();
+  if (files.graphPath && !files.error) return pagesFromFiles(files.tree);
 
-  const journalRoot: TreeNode = {
-    name: "journals",
-    path: "__journals",
-    isLeaf: false,
-    children: [],
-  };
-
-  for (const p of pages as any[]) {
-    const name: string = p.originalName ?? p.name ?? "";
-    if (!name) continue;
-    if (name.startsWith("$")) continue;
-
-    if (p["journal?"] || p.journal) {
-      journalRoot.children!.push({
-        name,
-        path: `__journals/${name}`,
-        isLeaf: true,
-        pageName: name,
-      });
-      continue;
-    }
-
-    const parts = name.split("/");
-    let cursor = root;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const partPath = parts.slice(0, i + 1).join("/");
-      const isLast = i === parts.length - 1;
-      cursor.children = cursor.children || [];
-      let child = cursor.children.find((c) => c.name === part);
-      if (!child) {
-        child = {
-          name: part,
-          path: partPath,
-          isLeaf: isLast,
-          pageName: isLast ? name : undefined,
-          children: isLast ? undefined : [],
-        };
-        cursor.children.push(child);
-      } else if (isLast) {
-        child.isLeaf = true;
-        child.pageName = name;
-      }
-      if (!isLast) cursor = child;
-    }
-  }
-
-  sort(root);
-  sort(journalRoot);
-
-  const out = root.children || [];
-  if (journalRoot.children && journalRoot.children.length) {
-    journalRoot.children.sort((a, b) => b.name.localeCompare(a.name));
-    out.unshift(journalRoot);
-  }
-  return out;
+  // DB graphs and Logseq builds without filesystem IPC still have a Pages view.
+  return pagesFromApi((await logseq.Editor.getAllPages()) || []);
 }
 
-function sort(node: TreeNode) {
-  if (!node.children) return;
-  node.children.sort((a, b) => {
+export function pagesFromFiles(files: TreeNode[]): TreeNode[] {
+  const convert = (nodes: TreeNode[]): TreeNode[] => {
+    const result: TreeNode[] = [];
+    for (const node of nodes) {
+      if (!node.isLeaf) {
+        const children = convert(node.children || []);
+        if (children.length) result.push({ ...node, children });
+        continue;
+      }
+      if (!/\.md$/i.test(node.name)) continue;
+
+      const parts = stripExt(node.name).split("___").filter(Boolean);
+      if (!parts.length) continue;
+      const pageName = node.canonicalPage ? node.pageName : undefined;
+      insertPage(result, parts, pageName, node.path);
+    }
+    sort(result);
+    return result;
+  };
+  return convert(files);
+}
+
+function pagesFromApi(pages: any[]): TreeNode[] {
+  const root: TreeNode[] = [];
+  const journals: TreeNode = {
+    name: "journals", path: "__journals", isLeaf: false,
+    virtual: true, children: [],
+  };
+  for (const page of pages) {
+    const name: string = page.originalName ?? page.name ?? "";
+    if (!name || name.startsWith("$")) continue;
+    if (page["journal?"] || page.journal) {
+      journals.children!.push({ name, path: `__journals/${name}`, isLeaf: true, pageName: name });
+    } else {
+      insertPage(root, name.split("/").filter(Boolean), name, `__page/${name}`);
+    }
+  }
+  sort(root);
+  journals.children!.sort((a, b) => b.name.localeCompare(a.name));
+  if (journals.children!.length) root.unshift(journals);
+  return root;
+}
+
+function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undefined, filePath: string) {
+  let siblings = nodes;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const prefix = parts.slice(0, i + 1).join("/");
+    const path = `__namespace/${filePath.slice(0, filePath.lastIndexOf("/") + 1)}${prefix}`;
+    let folder = siblings.find((n) => n.virtual && n.path === path);
+    if (!folder) {
+      folder = { name: parts[i], path, isLeaf: false, virtual: true, children: [] };
+      siblings.push(folder);
+    }
+    siblings = folder.children!;
+  }
+  siblings.push({ name: parts[parts.length - 1], path: filePath, isLeaf: true, pageName });
+}
+
+function sort(nodes: TreeNode[]) {
+  nodes.sort((a, b) => {
     if (a.isLeaf !== b.isLeaf) return a.isLeaf ? 1 : -1;
     return a.name.localeCompare(b.name);
   });
-  for (const c of node.children) sort(c);
+  for (const node of nodes) if (node.children) sort(node.children);
 }

@@ -11,7 +11,7 @@
 
 ## Features
 
-- **Two views:** _Files_ (raw filesystem tree) and _Pages_ (namespace-grouped).
+- **Two views:** _Files_ (raw filesystem tree) and _Pages_ (Markdown files grouped by graph folders, then filename namespaces).
 - **Native feel:** matches Logseq's sidebar spacing, colors, and typography.
 - **Right-click menu:** new file/folder, duplicate, rename, move, delete, copy path, reveal in Finder, open in default app, open to the right / new window, insert link in today's journal.
 - **Drag-and-drop:** move files between folders with drop-target highlighting.
@@ -26,7 +26,7 @@
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/kendreaditya/logseq-file-explorer.git
+   git clone https://github.com/Darque/logseq-file-explorer.git
    cd logseq-file-explorer
    ```
 2. Install and build:
@@ -50,7 +50,7 @@ Reload the plugin from the Plugins page after each rebuild.
 
 Logseq exposes no official API to add a section to the left sidebar. This plugin uses `logseq.provideUI({ path, template })` to inject HTML into the host document's `.left-sidebar-inner` container, and talks to Logseq's Electron IPC bridge (`window.top.apis.doAction(...)`) for filesystem operations that the public plugin API doesn't cover (readdir, mkdir, rename, unlink, copyFile, openPath, openFileInFolder).
 
-- **Pages tree:** `logseq.Editor.getAllPages()` split by namespace separator.
+- **Pages tree:** for file-based graphs, Markdown files follow their real folders and then split `___` filename namespaces into nested groups. DB graphs fall back to `logseq.Editor.getAllPages()` split by `/`.
 - **Files tree:** `readdir` IPC against the graph root, filtered to skip `.git`, `node_modules`, `logseq/`, etc.
 - **Click handlers:** `logseq.provideModel` with `data-on-click` attributes.
 - **Theme-safe:** all styles use Logseq's CSS variables (`--ls-*`).

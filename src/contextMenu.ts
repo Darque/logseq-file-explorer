@@ -43,6 +43,7 @@ function handleContextMenu(e: MouseEvent) {
 
   let items: MenuItem[];
   if (row) {
+    if (row.dataset.virtual === "1") return;
     const data = extractRowData(row);
     if (!data) return;
     items = menuItemsFor(data);
@@ -112,7 +113,7 @@ function buildMenuFromItems(items: MenuItem[]): HTMLElement {
 }
 
 function renderItem(parent: HTMLElement, item: MenuItem) {
-  const host = (window as any).top?.document ?? document;
+  const host: Document = (window as any).top?.document ?? document;
   if (item.divider) {
     const d = host.createElement("div");
     d.className = "fe-ctx-divider";
@@ -133,14 +134,15 @@ function renderItem(parent: HTMLElement, item: MenuItem) {
     let subEl: HTMLElement | null = null;
     row.addEventListener("mouseenter", () => {
       if (subEl) return;
-      subEl = host.createElement("div");
-      subEl.className = "fe-ctx-menu fe-ctx-submenu";
-      for (const s of item.submenu!) renderItem(subEl, s);
+      const submenu = host.createElement("div");
+      subEl = submenu;
+      submenu.className = "fe-ctx-menu fe-ctx-submenu";
+      for (const s of item.submenu!) renderItem(submenu, s);
       const rect = row.getBoundingClientRect();
       const hostWin = (window as any).top ?? window;
-      subEl.style.left = rect.right + hostWin.scrollX + "px";
-      subEl.style.top = rect.top + hostWin.scrollY + "px";
-      host.body.appendChild(subEl);
+      submenu.style.left = rect.right + hostWin.scrollX + "px";
+      submenu.style.top = rect.top + hostWin.scrollY + "px";
+      host.body.appendChild(submenu);
     });
     row.addEventListener("mouseleave", () => {
       setTimeout(() => {

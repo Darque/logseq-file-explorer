@@ -4,13 +4,14 @@ Two separate tree builders, both producing `TreeNode[]` (`src/trees/types.ts:1-8
 
 ## Pages tree — `src/trees/pagesTree.ts`
 
-Source: `logseq.Editor.getAllPages()` (line 4). Each page's `originalName` (or `name` as fallback) is split on `/`, treating each segment as a namespace level.
+For file-based graphs, Pages starts with the Files tree and keeps Markdown files. Real graph directories stay as folders. Within each directory, a filename such as `Note___Research___Example.md` becomes `Note → Research → Example`; its file path remains attached to the leaf. Markdown outside Logseq's canonical `pages/` and `journals/` folders opens as a file rather than creating a page with a guessed name. Synthetic namespace folders have stable expansion state and no file-operations context menu.
 
-- `pages/Foo/Bar` (canonical name with `/`) becomes nested `Foo → Bar` in the tree.
-- Journal pages (`p["journal?"] || p.journal`) are grouped under a synthetic `journals` root at the top of the tree (line 7-12, 58-61), sorted descending by date-ish name.
-- Pages whose name starts with `$` are skipped (line 17) — these are internal Logseq system pages.
+When the filesystem API is unavailable, Pages falls back to `logseq.Editor.getAllPages()` and groups page names by `/`. The fallback has no physical-folder information.
 
-Sort order (line 65-72): folders before leaves; within a level, `localeCompare` alphabetical. Journals root is then `unshift`-ed onto the top.
+- Journal files stay in their physical `journals` folder. In the API fallback, journal pages use a synthetic `journals` root.
+- In the API fallback, pages whose name starts with `$` are skipped; these are internal Logseq system pages.
+
+Sort order: folders before leaves; within a level, `localeCompare` alphabetical. In the API fallback, journals are sorted descending and placed first.
 
 ## Files tree — `src/trees/fsTree.ts`
 
