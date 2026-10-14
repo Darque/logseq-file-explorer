@@ -1,6 +1,6 @@
 import type { State } from "./state";
 import type { TreeNode } from "./trees/types";
-import { buildPagesTree } from "./trees/pagesTree";
+import { buildPagesTree, getMaxNamespaceDepth } from "./trees/pagesTree";
 import { buildFsTree, extOf, stripExt } from "./trees/fsTree";
 import { addModifiedTimes, dateTree, formatModifiedTime } from "./modifiedTime";
 
@@ -26,6 +26,7 @@ export async function renderPanel(
 
   const settings = state.viewSettings[state.view];
   if (state.settingsOpen) {
+    state.maxNamespaceDepth = await getMaxNamespaceDepth();
     body = renderSettings(state);
   } else if (state.view === "name") {
     const graph = await logseq.App.getCurrentGraph();
@@ -77,22 +78,15 @@ function renderSettings(state: State): string {
         <h3>${view === "name" ? "Name" : "Date"} tab</h3>
         <button class="fe-setting-check" role="checkbox" aria-checked="${settings.hideDate}" data-on-click="toggleHideDate" data-view="${view}"><span class="fe-checkbox">${settings.hideDate ? "✓" : ""}</span> Hide file date/time</button>
         <div class="fe-setting-counter"><span>Namespace nest depth</span><div class="fe-counter-actions">
-          <button data-on-click="changeDepth" data-view="${view}" data-value="zero" title="No namespace folders">0</button>
-          <button data-on-click="changeDepth" data-view="${view}" data-delta="-1" title="Decrease nesting">−</button>
-          <output>${settings.namespaceDepth === 99 ? "All" : settings.namespaceDepth}</output>
-          <button data-on-click="changeDepth" data-view="${view}" data-delta="1" title="Increase nesting">+</button>
+          <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="${view === "name" ? "Name" : "Date"} namespace nest depth" data-on-change="changeDepth" data-view="${view}" value="${settings.namespaceDepth === 99 ? "All" : settings.namespaceDepth}">
           <button data-on-click="changeDepth" data-view="${view}" data-value="all" title="Nest all namespaces">All</button>
         </div></div>
         ${view === "date" ? `<div class="fe-setting-counter"><span>Recent edits (hours)</span><div class="fe-counter-actions">
-          <button data-on-click="changeRecentHours" data-delta="-1" title="Fewer hours">−</button>
-          <output>${state.dateRecentHours}</output>
-          <button data-on-click="changeRecentHours" data-delta="1" title="More hours">+</button>
+          <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Recent edits in hours" data-on-change="changeRecentHours" value="${state.dateRecentHours}">
         </div></div><div class="fe-setting-counter"><span>Recent edits (weeks)</span><div class="fe-counter-actions">
-          <button data-on-click="changeRecentWeeks" data-delta="-1" title="Fewer weeks">−</button>
-          <output>${state.dateRecentWeeks}</output>
-          <button data-on-click="changeRecentWeeks" data-delta="1" title="More weeks">+</button>
+          <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Recent edits in weeks" data-on-change="changeRecentWeeks" value="${state.dateRecentWeeks}">
         </div></div>` : ""}
-        <p>0 keeps the namespace in the file name. Higher values add folder levels; remaining namespaces share the last parent folder.</p>
+        <p>0 keeps the namespace in the file name. Values above ${state.maxNamespaceDepth} use All. Higher values add folder levels; remaining namespaces share the last parent folder.</p>
         ${view === "date" ? "<p>Edits within the hour window use hour folders. Other edits within the week window use day folders. Earlier files appear in Older files. Cutoffs are recalculated when the tree loads or refreshes.</p>" : ""}
       </section>`;
     }).join("")}
@@ -143,7 +137,7 @@ function renderRow(
       ? `<time class="fe-modified" datetime="${new Date(n.modifiedAt!).toISOString()}">${formatModifiedTime(n.modifiedAt!)}</time>`
       : "";
 
-    return `<div class="monaco-list-row fe-row ${active}" draggable="true" data-kind="${kind}" data-source="${source}" data-path="${esc(n.path)}" ${pageAttr} ${canonicalAttr} ${click} data-tooltip="${esc(labelText)}" aria-label="${esc(n.displayName || n.name)}">
+    return `<div class="monaco-list-row fe-row ${active}" draggable="true" data-kind="${kind}" data-source="${source}" data-path="${esc(n.path)}" ${pageAttr} ${canonicalAttr} ${click} data-fe-tooltip="${esc(labelText)}">
       <div class="monaco-tl-row">
         ${indent}
         <div class="monaco-tl-twistie fe-spacer"></div>

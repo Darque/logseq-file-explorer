@@ -115,7 +115,19 @@
   cursor: pointer;
 }
 .fe-counter-actions button:hover { background: var(--ls-tertiary-background-color, rgba(127,127,127,.15)); }
-.fe-counter-actions output { min-width: 24px; text-align: center; font-variant-numeric: tabular-nums; }
+.fe-counter-actions input {
+  width: 58px;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 2px 5px;
+  border: 1px solid var(--ls-border-color, rgba(127,127,127,.3));
+  border-radius: 4px;
+  background: var(--ls-primary-background-color);
+  color: var(--ls-primary-text-color);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
 .fe-settings p { font-size: 12px; line-height: 1.4; opacity: .65; margin: 0; }
 
 /* ---- List / rows ---- */
@@ -307,10 +319,11 @@
   background: var(--ls-border-color, rgba(127,127,127,0.22));
 }
 
-.fe-tooltip {
+.fe-tooltip:not([hidden]) {
   position: fixed;
   z-index: 100000;
-  max-width: min(420px, calc(100vw - 24px));
+  max-width: 420px;
+  width: max-content;
   padding: 5px 8px;
   border-radius: 5px;
   background: var(--ls-primary-background-color, #222);
@@ -323,3 +336,4 @@
   overflow-wrap: anywhere;
   pointer-events: none;
 }
+.fe-tooltip[hidden] { display: none; }

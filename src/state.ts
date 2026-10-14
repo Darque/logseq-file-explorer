@@ -24,6 +24,7 @@ export class State {
   };
   dateRecentWeeks = 1;
   dateRecentHours = 24;
+  maxNamespaceDepth = 0;
   panelOpen = false;
   settingsOpen = false;
   rootCollapsed = false;

@@ -6,9 +6,24 @@ import { initDnd } from "./dnd";
 import { createNewFile, createNewFolder } from "./newItem";
 import cssText from "./styles.css?raw";
 import { clearModifiedTimeCache } from "./modifiedTime";
+import { ALL_DEPTH, parseNamespaceDepth, parseNonnegativeCount } from "./settingsNumbers";
 
 const HEADER_SELECTOR = ".cp__header .l.drag-region";
 const PANEL_SELECTOR = ".left-sidebar-inner > .flex.flex-col.wrap";
+const TOOLTIP_MOVE = `
+  var row = event.target.closest('.fe-row[data-fe-tooltip]');
+  var tip = this.querySelector('.fe-tooltip');
+  var label = row && row.querySelector('.fe-label');
+  if (!tip || !label || label.scrollWidth <= label.clientWidth + 1) {
+    if (tip) tip.hidden = true;
+    return;
+  }
+  tip.textContent = row.dataset.feTooltip;
+  tip.style.left = (event.clientX + 8) + 'px';
+  tip.style.top = (event.clientY + 12) + 'px';
+  tip.hidden = false;
+`;
+const TOOLTIP_LEAVE = "var tip = this.querySelector('.fe-tooltip'); if (tip) tip.hidden = true";
 
 let rerenderQueued = false;
 
@@ -38,8 +53,9 @@ async function rerender() {
       logseq.provideUI({
         key: "fe-panel",
         path: PANEL_SELECTOR,
-        template: html,
+        template: html + '<div class="fe-tooltip" hidden aria-hidden="true"></div>',
         reset: true,
+        attrs: { onmouseover: TOOLTIP_MOVE, onmousemove: TOOLTIP_MOVE, onmouseleave: TOOLTIP_LEAVE },
       } as any);
 
       ensurePanelContainerRelative();
@@ -125,24 +141,18 @@ async function main() {
     changeDepth(e: any) {
       const view = e?.dataset?.view as View;
       if (view !== "name" && view !== "date") return;
-      const current = state.viewSettings[view].namespaceDepth;
-      const next = e.dataset.value === "all" ? 99 : e.dataset.value === "zero" ? 0 : current + Number(e.dataset.delta);
-      if (!Number.isFinite(next)) return;
-      state.viewSettings[view].namespaceDepth = Math.max(0, Math.floor(next));
+      state.viewSettings[view].namespaceDepth = e?.dataset?.value === "all"
+        ? ALL_DEPTH : parseNamespaceDepth(String(e?.value ?? ""), state.maxNamespaceDepth);
       persist();
       rerender();
     },
     changeRecentWeeks(e: any) {
-      const delta = Number(e?.dataset?.delta);
-      if (!Number.isFinite(delta)) return;
-      state.dateRecentWeeks = Math.max(0, state.dateRecentWeeks + delta);
+      state.dateRecentWeeks = parseNonnegativeCount(String(e?.value ?? ""), 1);
       persist();
       rerender();
     },
     changeRecentHours(e: any) {
-      const delta = Number(e?.dataset?.delta);
-      if (!Number.isFinite(delta)) return;
-      state.dateRecentHours = Math.max(0, state.dateRecentHours + delta);
+      state.dateRecentHours = parseNonnegativeCount(String(e?.value ?? ""), 24);
       persist();
       rerender();
     },
@@ -185,7 +195,6 @@ async function main() {
     state.load(newSettings);
     rerender();
   });
-  initTooltips();
   initContextMenu(() => rerender());
   initDnd(() => rerender());
 
@@ -214,35 +223,3 @@ async function main() {
 }
 
 logseq.ready(main).catch(console.error);
-
-function initTooltips() {
-  try {
-    const doc = (window as any).top?.document ?? document;
-    let tip: HTMLElement | null = null;
-    let hoveredRow: HTMLElement | null = null;
-    const hide = () => { tip?.remove(); tip = null; hoveredRow = null; };
-    doc.addEventListener("pointerover", (event: PointerEvent) => {
-      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]") as HTMLElement | null;
-      if (!row) return;
-      if (row === hoveredRow) return;
-      hide();
-      const label = row.querySelector(".fe-label") as HTMLElement | null;
-      if (!label || label.scrollWidth <= label.clientWidth + 1) return;
-      hoveredRow = row;
-      const element = doc.createElement("div") as HTMLElement;
-      tip = element;
-      element.className = "fe-tooltip";
-      element.textContent = row.dataset.tooltip || "";
-      doc.body.appendChild(element);
-      const rect = row.getBoundingClientRect();
-      element.style.left = `${Math.min(rect.left + 24, doc.defaultView.innerWidth - element.offsetWidth - 12)}px`;
-      element.style.top = `${Math.min(rect.bottom + 4, doc.defaultView.innerHeight - element.offsetHeight - 12)}px`;
-    });
-    doc.addEventListener("pointerout", (event: PointerEvent) => {
-      const row = (event.target as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]");
-      const next = (event.relatedTarget as HTMLElement | null)?.closest?.("#fe-panel .fe-row[data-tooltip]");
-      if (row && row !== next) hide();
-    });
-    doc.addEventListener("scroll", hide, true);
-  } catch { /* noop */ }
-}

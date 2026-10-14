@@ -12,6 +12,27 @@ export async function buildPagesTree(namespaceDepth = 99): Promise<TreeNode[]> {
   return pagesFromApi((await logseq.Editor.getAllPages()) || [], namespaceDepth);
 }
 
+export async function getMaxNamespaceDepth(): Promise<number> {
+  const files = await buildFsTree();
+  if (files.graphPath && !files.error) {
+    let max = 0;
+    const visit = (nodes: TreeNode[]) => {
+      for (const node of nodes) {
+        if (!node.isLeaf) visit(node.children || []);
+        else if (/\.md$/i.test(node.name)) max = Math.max(max, stripExt(node.name).split("___").filter(Boolean).length - 1);
+      }
+    };
+    visit(files.tree);
+    return max;
+  }
+  const pages = (await logseq.Editor.getAllPages()) || [];
+  return pages.reduce((max: number, page: any) => {
+    if (page["journal?"] || page.journal) return max;
+    const name: string = page.originalName ?? page.name ?? "";
+    return Math.max(max, name.split("/").filter(Boolean).length - 1);
+  }, 0);
+}
+
 export function pagesFromFiles(files: TreeNode[], namespaceDepth = 99): TreeNode[] {
   const convert = (nodes: TreeNode[]): TreeNode[] => {
     const result: TreeNode[] = [];
