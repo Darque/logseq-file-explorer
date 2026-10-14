@@ -33,7 +33,8 @@ export async function renderPanel(
     graphPath = (graph as any)?.path;
     const tree = await buildPagesTree(settings.namespaceDepth);
     await addModifiedTimes(tree, graphPath, (path) => state.isOpen(path));
-    body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate) : emptyRow("No pages");
+    const activeNode = findVisibleActiveNode(tree, state.currentPage, (path) => state.isOpen(path));
+    body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate, activeNode) : emptyRow("No pages");
   } else {
     const graph = await logseq.App.getCurrentGraph();
     graphPath = (graph as any)?.path;
@@ -41,8 +42,9 @@ export async function renderPanel(
     graphPath = res.graphPath || graphPath;
     await addModifiedTimes(res.tree, graphPath, () => true, true);
     const tree = dateTree(res.tree, settings.namespaceDepth, state.dateRecentWeeks, state.dateRecentHours);
+    const activeNode = findVisibleActiveNode(tree, state.currentPage, (path) => state.isOpen(path));
     if (res.error && !tree.length) body = emptyRow(res.error);
-    else body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate) : emptyRow("No dated files");
+    else body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate, activeNode) : emptyRow("No dated files");
   }
 
   const activeName = state.view === "name" ? "active" : "";
@@ -95,14 +97,32 @@ function renderSettings(state: State): string {
 
 type Source = "page" | "fs";
 
+function findVisibleActiveNode(
+  nodes: TreeNode[],
+  currentPage: string | null,
+  isOpen: (path: string) => boolean,
+): TreeNode | undefined {
+  if (!currentPage) return undefined;
+  for (const node of nodes) {
+    if (node.isLeaf) {
+      if (node.pageName?.toLowerCase() === currentPage.toLowerCase()) return node;
+    } else if (node.children) {
+      const activeChild = findVisibleActiveNode(node.children, currentPage, isOpen);
+      if (activeChild) return isOpen(node.path) ? activeChild : node;
+    }
+  }
+  return undefined;
+}
+
 function renderRows(
   nodes: TreeNode[],
   depth: number,
   state: State,
   source: Source,
   hideDate: boolean,
+  activeNode?: TreeNode,
 ): string {
-  return nodes.map((n) => renderRow(n, depth, state, source, hideDate)).join("");
+  return nodes.map((n) => renderRow(n, depth, state, source, hideDate, activeNode)).join("");
 }
 
 function renderRow(
@@ -111,14 +131,11 @@ function renderRow(
   state: State,
   source: Source,
   hideDate: boolean,
+  activeNode?: TreeNode,
 ): string {
   const indent = renderIndent(depth);
   if (n.isLeaf) {
-    const active =
-      n.pageName && state.currentPage &&
-        n.pageName.toLowerCase() === state.currentPage.toLowerCase()
-        ? "is-active"
-        : "";
+    const active = n === activeNode ? "is-active" : "";
     const isPage = !!n.pageName;
     const kind = isPage ? "page" : "file";
     const click = isPage
@@ -151,12 +168,13 @@ function renderRow(
   }
 
   const isOpen = state.isOpen(n.path);
+  const active = n === activeNode ? "is-active" : "";
   const twistieCls = isOpen ? "expanded" : "collapsed";
   const children = isOpen && n.children
-    ? renderRows(n.children, depth + 1, state, source, hideDate)
+    ? renderRows(n.children, depth + 1, state, source, hideDate, activeNode)
     : "";
 
-  return `<div class="monaco-list-row fe-row fe-folder" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" aria-label="${esc(n.name)}">
+  return `<div class="monaco-list-row fe-row fe-folder ${active}" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" aria-label="${esc(n.name)}">
     <div class="monaco-tl-row">
       ${indent}
       <div class="monaco-tl-twistie ${twistieCls}">${ICON_CHEVRON}</div>
