@@ -25,7 +25,9 @@ export async function renderPanel(
   let graphPath: string | undefined;
 
   const settings = state.viewSettings[state.view];
-  if (state.view === "name") {
+  if (state.settingsOpen) {
+    body = renderSettings(state);
+  } else if (state.view === "name") {
     const graph = await logseq.App.getCurrentGraph();
     graphPath = (graph as any)?.path;
     const tree = await buildPagesTree(settings.namespaceDepth);
@@ -37,7 +39,7 @@ export async function renderPanel(
     const res = await buildFsTree();
     graphPath = res.graphPath || graphPath;
     await addModifiedTimes(res.tree, graphPath, () => true, true);
-    const tree = dateTree(res.tree, settings.namespaceDepth);
+    const tree = dateTree(res.tree, settings.namespaceDepth, state.dateRecentWeeks);
     if (res.error && !tree.length) body = emptyRow(res.error);
     else body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate) : emptyRow("No dated files");
   }
@@ -49,20 +51,48 @@ export async function renderPanel(
 <div id="fe-panel" class="fe-panel" data-graph-path="${esc(graphPath || "")}">
   <div class="fe-tabs">
     <div class="fe-tabs-inner">
-      <a data-on-click="switchView" data-view="name" class="fe-tab ${activeName}">Name</a>
-      <a data-on-click="switchView" data-view="date" class="fe-tab ${activeDate}">Date</a>
+      <button type="button" data-on-click="switchView" data-view="name" class="fe-tab ${activeName}" aria-pressed="${state.view === "name"}">Name</button>
+      <button type="button" data-on-click="switchView" data-view="date" class="fe-tab ${activeDate}" aria-pressed="${state.view === "date"}">Date</button>
     </div>
     <div class="fe-tabs-actions">
       <button class="fe-tab-btn" title="New file" data-on-click="newFile"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M12 11l0 6"/><path d="M9 14l6 0"/></svg></button>
       <button class="fe-tab-btn" title="New folder" data-on-click="newFolder"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3.5"/><path d="M16 19h6"/><path d="M19 16v6"/></svg></button>
       <button class="fe-tab-btn" title="Refresh" data-on-click="refresh"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/></svg></button>
+      <button class="fe-tab-btn ${state.settingsOpen ? "active" : ""}" title="File Explorer settings" aria-label="File Explorer settings" aria-pressed="${state.settingsOpen}" data-on-click="toggleSettings"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0 -8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1l-2 2l-.1-.1a1.7 1.7 0 0 0 -1.9-.3a1.7 1.7 0 0 0 -1 1.5v.2h-2.8v-.2a1.7 1.7 0 0 0 -1-1.5a1.7 1.7 0 0 0 -1.9.3l-.1.1l-2 -2l.1-.1a1.7 1.7 0 0 0 .3-1.9a1.7 1.7 0 0 0 -1.5-1h-.2v-2.8h.2a1.7 1.7 0 0 0 1.5-1a1.7 1.7 0 0 0 -.3-1.9l-.1-.1l2 -2l.1.1a1.7 1.7 0 0 0 1.9.3a1.7 1.7 0 0 0 1-1.5v-.2h2.8v.2a1.7 1.7 0 0 0 1 1.5a1.7 1.7 0 0 0 1.9-.3l.1-.1l2 2l-.1.1a1.7 1.7 0 0 0 -.3 1.9a1.7 1.7 0 0 0 1.5 1h.2v2.8h-.2a1.7 1.7 0 0 0 -1.5 1z"/></svg></button>
     </div>
   </div>
-  <div class="monaco-list" data-drop-root="${esc(graphPath || "")}">
+  ${state.settingsOpen ? body : `<div class="monaco-list" data-drop-root="${esc(graphPath || "")}">
     <div class="monaco-list-rows">${body}</div>
-  </div>
+  </div>`}
 </div>`;
   return { html, graphPath };
+}
+
+function renderSettings(state: State): string {
+  return `<div class="fe-settings">
+    <h2>File Explorer settings</h2>
+    ${(["name", "date"] as const).map((view) => {
+      const settings = state.viewSettings[view];
+      return `<section class="fe-settings-section">
+        <h3>${view === "name" ? "Name" : "Date"} tab</h3>
+        <button class="fe-setting-check" role="checkbox" aria-checked="${settings.hideDate}" data-on-click="toggleHideDate" data-view="${view}"><span class="fe-checkbox">${settings.hideDate ? "✓" : ""}</span> Hide file date/time</button>
+        <div class="fe-setting-counter"><span>Namespace nest depth</span><div class="fe-counter-actions">
+          <button data-on-click="changeDepth" data-view="${view}" data-value="zero" title="No namespace folders">0</button>
+          <button data-on-click="changeDepth" data-view="${view}" data-delta="-1" title="Decrease nesting">−</button>
+          <output>${settings.namespaceDepth === 99 ? "All" : settings.namespaceDepth}</output>
+          <button data-on-click="changeDepth" data-view="${view}" data-delta="1" title="Increase nesting">+</button>
+          <button data-on-click="changeDepth" data-view="${view}" data-value="all" title="Nest all namespaces">All</button>
+        </div></div>
+        ${view === "date" ? `<div class="fe-setting-counter"><span>Recent edits (weeks)</span><div class="fe-counter-actions">
+          <button data-on-click="changeRecentWeeks" data-delta="-1" title="Fewer weeks">−</button>
+          <output>${state.dateRecentWeeks}</output>
+          <button data-on-click="changeRecentWeeks" data-delta="1" title="More weeks">+</button>
+        </div></div>` : ""}
+        <p>0 keeps the namespace in the file name. Each higher level creates one namespace folder.</p>
+        ${view === "date" ? "<p>Files edited before the recent window appear in one Older files folder. The cutoff is recalculated when the tree loads or refreshes.</p>" : ""}
+      </section>`;
+    }).join("")}
+  </div>`;
 }
 
 type Source = "page" | "fs";

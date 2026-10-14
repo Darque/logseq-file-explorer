@@ -45,6 +45,8 @@
   gap: 2px;
 }
 .fe-tabs .fe-tab {
+  border: 0;
+  background: transparent;
   padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
@@ -82,6 +84,39 @@
   background: var(--ls-quaternary-background-color, rgba(127,127,127,0.1));
   color: var(--ls-primary-text-color);
 }
+.fe-tab-btn.active {
+  opacity: 1;
+  color: var(--ls-primary-text-color);
+  background: var(--ls-tertiary-background-color, rgba(127,127,127,0.15));
+}
+
+.fe-settings {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 16px 24px;
+  user-select: text;
+}
+.fe-settings h2 { font-size: 15px; font-weight: 600; margin: 2px 0 16px; }
+.fe-settings-section { margin: 0 0 22px; }
+.fe-settings-section h3 { font-size: 14px; font-weight: 600; margin: 0 0 10px; }
+.fe-setting-check, .fe-setting-counter { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0; font-size: 13px; }
+.fe-setting-check { padding: 2px 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.fe-checkbox { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid var(--ls-border-color, rgba(127,127,127,.5)); border-radius: 3px; }
+.fe-setting-check[aria-checked="true"] .fe-checkbox { background: var(--ls-active-primary-color, #4493f8); color: white; }
+.fe-counter-actions { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; }
+.fe-counter-actions button {
+  min-width: 24px;
+  height: 24px;
+  padding: 2px 5px;
+  border: 1px solid var(--ls-border-color, rgba(127,127,127,.3));
+  border-radius: 4px;
+  background: var(--ls-primary-background-color);
+  color: var(--ls-primary-text-color);
+  cursor: pointer;
+}
+.fe-counter-actions button:hover { background: var(--ls-tertiary-background-color, rgba(127,127,127,.15)); }
+.fe-counter-actions output { min-width: 24px; text-align: center; font-variant-numeric: tabular-nums; }
+.fe-settings p { font-size: 12px; line-height: 1.4; opacity: .65; margin: 0; }
 
 /* ---- List / rows ---- */
 .fe-panel .monaco-list {

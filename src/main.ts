@@ -1,5 +1,5 @@
 import "@logseq/libs";
-import { state } from "./state";
+import { state, type View } from "./state";
 import { renderHeaderButton, renderPanel } from "./render";
 import { initContextMenu } from "./contextMenu";
 import { initDnd } from "./dnd";
@@ -72,7 +72,8 @@ async function main() {
     { key: "nameHideDate", type: "boolean", default: false, title: "Name — Hide date/time", description: "Name tab: hide modification timestamps." },
     { key: "nameNamespaceDepth", type: "number", default: 99, title: "Name — Namespace nesting depth", description: "Name tab: 0 keeps all namespaces in the parent folder; larger values create that many namespace folders." },
     { key: "dateHideDate", type: "boolean", default: false, title: "Date — Hide date/time", description: "Date tab: hide modification timestamps." },
-    { key: "dateNamespaceDepth", type: "number", default: 1, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps pages directly under the hour folder; larger values create that many namespace folders." },
+    { key: "dateNamespaceDepth", type: "number", default: 0, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps pages directly under the hour folder; larger values create that many namespace folders." },
+    { key: "dateRecentWeeks", type: "number", default: 1, title: "Date — Recent edits (weeks)", description: "Older files are grouped into one folder. The cutoff is recalculated when the tree loads or refreshes." },
   ]);
   state.load(logseq.settings as any);
 
@@ -104,9 +105,38 @@ async function main() {
       const v = e?.dataset?.view;
       if (v === "name" || v === "date") {
         state.view = v;
+        state.settingsOpen = false;
         persist();
         rerender();
       }
+    },
+    toggleSettings() {
+      state.settingsOpen = !state.settingsOpen;
+      rerender();
+    },
+    toggleHideDate(e: any) {
+      const view = e?.dataset?.view as View;
+      if (view !== "name" && view !== "date") return;
+      state.viewSettings[view].hideDate = !state.viewSettings[view].hideDate;
+      persist();
+      rerender();
+    },
+    changeDepth(e: any) {
+      const view = e?.dataset?.view as View;
+      if (view !== "name" && view !== "date") return;
+      const current = state.viewSettings[view].namespaceDepth;
+      const next = e.dataset.value === "all" ? 99 : e.dataset.value === "zero" ? 0 : current + Number(e.dataset.delta);
+      if (!Number.isFinite(next)) return;
+      state.viewSettings[view].namespaceDepth = Math.max(0, Math.floor(next));
+      persist();
+      rerender();
+    },
+    changeRecentWeeks(e: any) {
+      const delta = Number(e?.dataset?.delta);
+      if (!Number.isFinite(delta)) return;
+      state.dateRecentWeeks = Math.max(0, state.dateRecentWeeks + delta);
+      persist();
+      rerender();
     },
     toggleFolder(e: any) {
       const p = e?.dataset?.path;
@@ -176,7 +206,6 @@ async function main() {
 }
 
 logseq.ready(main).catch(console.error);
-
 
 function initTooltips() {
   try {

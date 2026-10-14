@@ -10,6 +10,7 @@ export interface PersistedState {
   panelOpen: boolean;
   nameHideDate?: boolean; nameNamespaceDepth?: number;
   dateHideDate?: boolean; dateNamespaceDepth?: number;
+  dateRecentWeeks?: number;
   rootCollapsed: boolean;
   openFolders: string[];
 }
@@ -20,7 +21,9 @@ export class State {
     name: { hideDate: false, namespaceDepth: 99 },
     date: { hideDate: false, namespaceDepth: 0 },
   };
+  dateRecentWeeks = 1;
   panelOpen = false;
+  settingsOpen = false;
   rootCollapsed = false;
   open = new Set<string>();
   currentPage: string | null = null;
@@ -34,6 +37,7 @@ export class State {
     if (Number.isFinite(s.nameNamespaceDepth)) this.viewSettings.name.namespaceDepth = Math.max(0, Math.floor(s.nameNamespaceDepth!));
     if (typeof s.dateHideDate === "boolean") this.viewSettings.date.hideDate = s.dateHideDate;
     if (Number.isFinite(s.dateNamespaceDepth)) this.viewSettings.date.namespaceDepth = Math.max(0, Math.floor(s.dateNamespaceDepth!));
+    if (Number.isFinite(s.dateRecentWeeks)) this.dateRecentWeeks = Math.max(0, Math.floor(s.dateRecentWeeks!));
     if (typeof s.panelOpen === "boolean") this.panelOpen = s.panelOpen;
     if (typeof s.rootCollapsed === "boolean")
       this.rootCollapsed = s.rootCollapsed;
@@ -48,6 +52,7 @@ export class State {
       nameNamespaceDepth: this.viewSettings.name.namespaceDepth,
       dateHideDate: this.viewSettings.date.hideDate,
       dateNamespaceDepth: this.viewSettings.date.namespaceDepth,
+      dateRecentWeeks: this.dateRecentWeeks,
       rootCollapsed: this.rootCollapsed,
       openFolders: [...this.open],
     };
