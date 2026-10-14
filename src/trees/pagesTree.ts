@@ -1,6 +1,7 @@
 import type { TreeNode } from "./types";
 import { buildFsTree, stripExt } from "./fsTree";
 import { parseModifiedTime } from "../modifiedTime";
+import { namespaceParts } from "./namespaceParts";
 
 /** Pages are organised by their real graph folders, then by filename namespaces. */
 export async function buildPagesTree(namespaceDepth = 99): Promise<TreeNode[]> {
@@ -25,10 +26,7 @@ export function pagesFromFiles(files: TreeNode[], namespaceDepth = 99): TreeNode
       const fullParts = stripExt(node.name).split("___").filter(Boolean);
       if (!fullParts.length) continue;
       const pageName = node.canonicalPage ? node.pageName : undefined;
-      const nesting = Math.min(Math.max(0, namespaceDepth), Math.max(0, fullParts.length - 1));
-      const parts = nesting === 0 ? [fullParts.join("/")] : [
-        ...fullParts.slice(0, nesting), fullParts.slice(nesting).join("/"),
-      ];
+      const parts = namespaceParts(fullParts, namespaceDepth);
       insertPage(result, parts, pageName, node.path, node.modifiedAt, fullParts.join("/"));
     }
     sort(result);
@@ -51,10 +49,7 @@ function pagesFromApi(pages: any[], namespaceDepth = 99): TreeNode[] {
         modifiedAt: parseModifiedTime(page) });
     } else {
       const parts = name.split("/").filter(Boolean);
-      const nesting = Math.min(Math.max(0, namespaceDepth), Math.max(0, parts.length - 1));
-      const visibleParts = nesting === 0 ? [parts.join("/")] : [
-        ...parts.slice(0, nesting), parts.slice(nesting).join("/"),
-      ];
+      const visibleParts = namespaceParts(parts, namespaceDepth);
       insertPage(root, visibleParts, name, `__page/${name}`, parseModifiedTime(page), parts.join("/"));
     }
   }

@@ -70,9 +70,9 @@ async function main() {
 
   (logseq as any).useSettingsSchema([
     { key: "nameHideDate", type: "boolean", default: false, title: "Name — Hide date/time", description: "Name tab: hide modification timestamps." },
-    { key: "nameNamespaceDepth", type: "number", default: 99, title: "Name — Namespace nesting depth", description: "Name tab: 0 keeps all namespaces in the parent folder; larger values create that many namespace folders." },
+    { key: "nameNamespaceDepth", type: "number", default: 99, title: "Name — Namespace nesting depth", description: "Name tab: 0 keeps namespaces in the file name; larger values create that many folder levels, combining remaining namespaces in the last folder." },
     { key: "dateHideDate", type: "boolean", default: false, title: "Date — Hide date/time", description: "Date tab: hide modification timestamps." },
-    { key: "dateNamespaceDepth", type: "number", default: 0, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps pages directly under the date or hour folder; larger values create that many namespace folders." },
+    { key: "dateNamespaceDepth", type: "number", default: 0, title: "Date — Namespace nesting depth", description: "Date tab: 0 keeps namespaces in file names; larger values create that many folder levels, combining remaining namespaces in the last folder." },
     { key: "dateRecentHours", type: "number", default: 24, title: "Date — Recent edits (hours)", description: "Edits within this many hours use hour folders; earlier edits in the recent week window use day folders." },
     { key: "dateRecentWeeks", type: "number", default: 1, title: "Date — Recent edits (weeks)", description: "Older files are grouped into one folder. The cutoff is recalculated when the tree loads or refreshes." },
   ]);

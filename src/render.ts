@@ -92,7 +92,7 @@ function renderSettings(state: State): string {
           <output>${state.dateRecentWeeks}</output>
           <button data-on-click="changeRecentWeeks" data-delta="1" title="More weeks">+</button>
         </div></div>` : ""}
-        <p>0 keeps the namespace in the file name. Each higher level creates one namespace folder.</p>
+        <p>0 keeps the namespace in the file name. Higher values add folder levels; remaining namespaces share the last parent folder.</p>
         ${view === "date" ? "<p>Edits within the hour window use hour folders. Other edits within the week window use day folders. Earlier files appear in Older files. Cutoffs are recalculated when the tree loads or refreshes.</p>" : ""}
       </section>`;
     }).join("")}
