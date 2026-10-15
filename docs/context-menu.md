@@ -97,7 +97,7 @@ All items produced by `menuItemsFor(data)` starting at line 195:
 Line 82-95. Reads from dataset attributes on the row:
 
 - `data-kind` — `"page" | "file" | "folder"`
-- `data-source` — `"page" | "fs"` (which tree produced it)
+- `data-source` — `"page" | "fs"` (virtual/canonical row or physical noncanonical row)
 - `data-path` — relative path or page name
 - `data-page` — page name (if applicable)
 - `data-canonical` — `"1"` if canonical, else absent

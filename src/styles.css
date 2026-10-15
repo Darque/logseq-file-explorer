@@ -27,7 +27,7 @@
 }
 .fe-panel.fe-hidden { display: none; }
 
-/* ---- Tabs (Files / Pages) ---- */
+/* ---- Name and Date tabs ---- */
 .fe-tabs {
   display: flex;
   align-items: center;

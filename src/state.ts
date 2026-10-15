@@ -12,7 +12,6 @@ export interface PersistedState {
   dateHideDate?: boolean; dateNamespaceDepth?: number;
   dateRecentWeeks?: number;
   dateRecentHours?: number;
-  rootCollapsed: boolean;
   openFolders: string[];
   folderSelections?: Record<string, Record<string, boolean>>;
 }
@@ -28,12 +27,10 @@ export class State {
   maxNamespaceDepth = 0;
   panelOpen = false;
   settingsOpen = false;
-  rootCollapsed = false;
   open = new Set<string>();
   folderSelections: Record<string, Record<string, boolean>> = {};
   graphPath = "";
   currentPage: string | null = null;
-  graphName: string = "";
   dateFormat: string = "MMM do, yyyy";
 
   load(s: Partial<PersistedState> | undefined) {
@@ -46,8 +43,6 @@ export class State {
     if (Number.isFinite(s.dateRecentWeeks)) this.dateRecentWeeks = Math.max(0, Math.floor(s.dateRecentWeeks!));
     if (Number.isFinite(s.dateRecentHours)) this.dateRecentHours = Math.max(0, Math.floor(s.dateRecentHours!));
     if (typeof s.panelOpen === "boolean") this.panelOpen = s.panelOpen;
-    if (typeof s.rootCollapsed === "boolean")
-      this.rootCollapsed = s.rootCollapsed;
     if (Array.isArray(s.openFolders)) this.open = new Set(s.openFolders);
     if (s.folderSelections && typeof s.folderSelections === "object" && !Array.isArray(s.folderSelections)) {
       this.folderSelections = s.folderSelections;
@@ -64,14 +59,9 @@ export class State {
       dateNamespaceDepth: this.viewSettings.date.namespaceDepth,
       dateRecentWeeks: this.dateRecentWeeks,
       dateRecentHours: this.dateRecentHours,
-      rootCollapsed: this.rootCollapsed,
       openFolders: [...this.open],
       folderSelections: this.folderSelections,
     };
-  }
-
-  setViewSetting(view: View, key: keyof ViewSettings, value: boolean | number) {
-    (this.viewSettings[view] as any)[key] = value;
   }
 
   toggleFolder(path: string) {

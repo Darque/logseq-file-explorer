@@ -101,20 +101,12 @@ async function main() {
     /* noop */
   }
 
-  const g = await logseq.App.getCurrentGraph();
-  state.graphName = (g as any)?.name ?? "graph";
-
   const cur = await logseq.Editor.getCurrentPage();
   if (cur) state.currentPage = (cur as any).originalName ?? (cur as any).name;
 
   logseq.provideModel({
     togglePanel() {
       state.panelOpen = !state.panelOpen;
-      persist();
-      rerender();
-    },
-    toggleRoot() {
-      state.rootCollapsed = !state.rootCollapsed;
       persist();
       rerender();
     },
@@ -209,8 +201,6 @@ async function main() {
 
   logseq.App.onCurrentGraphChanged(async () => {
     clearModifiedTimeCache();
-    const g = await logseq.App.getCurrentGraph();
-    state.graphName = (g as any)?.name ?? "graph";
     rerender();
   });
   logseq.App.onRouteChanged(async () => {

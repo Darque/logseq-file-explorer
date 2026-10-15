@@ -86,7 +86,7 @@ function extractRowData(row: HTMLElement): RowData | null {
   const path = row.dataset.path;
   if (!kind || !source || !path) return null;
   const page = row.dataset.page;
-  const canonical = row.dataset.canonical === "1" || source === "page";
+  const canonical = row.dataset.canonical === "1" || path.startsWith("__page/") || path.startsWith("__journals/");
 
   const panel = row.closest("#fe-panel") as HTMLElement | null;
   const graphPath = panel?.dataset.graphPath || "";

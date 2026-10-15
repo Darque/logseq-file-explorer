@@ -29,7 +29,7 @@ export async function renderPanel(
     const files = await buildFsTree();
     graphPath = files.graphPath;
     state.graphPath = graphPath || "";
-    state.maxNamespaceDepth = await getMaxNamespaceDepth();
+    state.maxNamespaceDepth = await getMaxNamespaceDepth(files);
     body = renderSettings(state, files.rootFolders, graphPath);
   } else if (state.view === "name") {
     const graph = await logseq.App.getCurrentGraph();
@@ -37,7 +37,7 @@ export async function renderPanel(
     const tree = await buildPagesTree(settings.namespaceDepth);
     await addModifiedTimes(tree, graphPath, (path) => state.isOpen(path));
     const activeNode = findVisibleActiveNode(tree, state.currentPage, (path) => state.isOpen(path));
-    body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate, activeNode) : emptyRow("No pages");
+    body = tree.length ? renderRows(tree, 0, state, settings.hideDate, activeNode) : emptyRow("No pages");
   } else {
     const graph = await logseq.App.getCurrentGraph();
     graphPath = (graph as any)?.path;
@@ -47,7 +47,7 @@ export async function renderPanel(
     const tree = dateTree(res.tree, settings.namespaceDepth, state.dateRecentWeeks, state.dateRecentHours);
     const activeNode = findVisibleActiveNode(tree, state.currentPage, (path) => state.isOpen(path));
     if (res.error && !tree.length) body = emptyRow(res.error);
-    else body = tree.length ? renderRows(tree, 0, state, "page", settings.hideDate, activeNode) : emptyRow("No dated files");
+    else body = tree.length ? renderRows(tree, 0, state, settings.hideDate, activeNode) : emptyRow("No dated files");
   }
 
   const activeName = state.view === "name" ? "active" : "";
@@ -79,7 +79,6 @@ function renderSettings(state: State, rootFolders: string[], graphPath?: string)
     <h2>File Explorer settings</h2>
     <section class="fe-settings-section">
       <h3>Graph folders</h3>
-      <p>Only files inside checked folders appear in the Name and Date trees.</p>
       ${!graphPath ? "<p>Folder selection requires a file-based graph.</p>" : rootFolders.length
         ? `<div class="fe-folder-options">${rootFolders.map((folder) => {
             const checked = state.isRootFolderSelected(graphPath, folder);
@@ -101,14 +100,10 @@ function renderSettings(state: State, rootFolders: string[], graphPath?: string)
         </div></div><div class="fe-setting-counter"><span>Recent edits (weeks)</span><div class="fe-counter-actions">
           <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Recent edits in weeks" data-on-change="changeRecentWeeks" value="${state.dateRecentWeeks}">
         </div></div>` : ""}
-        <p>0 keeps the namespace in the file name. Values above ${state.maxNamespaceDepth} use All. Higher values add folder levels; remaining namespaces share the last parent folder.</p>
-        ${view === "date" ? "<p>Edits within the hour window use hour folders. Other edits within the week window use day folders. Earlier files appear in Older files. Cutoffs are recalculated when the tree loads or refreshes.</p>" : ""}
       </section>`;
     }).join("")}
   </div>`;
 }
-
-type Source = "page" | "fs";
 
 function findVisibleActiveNode(
   nodes: TreeNode[],
@@ -131,22 +126,21 @@ function renderRows(
   nodes: TreeNode[],
   depth: number,
   state: State,
-  source: Source,
   hideDate: boolean,
   activeNode?: TreeNode,
 ): string {
-  return nodes.map((n) => renderRow(n, depth, state, source, hideDate, activeNode)).join("");
+  return nodes.map((n) => renderRow(n, depth, state, hideDate, activeNode)).join("");
 }
 
 function renderRow(
   n: TreeNode,
   depth: number,
   state: State,
-  source: Source,
   hideDate: boolean,
   activeNode?: TreeNode,
 ): string {
   const indent = renderIndent(depth);
+  const source = n.virtual || n.canonicalPage || n.path.startsWith("__") ? "page" : "fs";
   if (n.isLeaf) {
     const active = n === activeNode ? "is-active" : "";
     const isPage = !!n.pageName;
@@ -184,7 +178,7 @@ function renderRow(
   const active = n === activeNode ? "is-active" : "";
   const twistieCls = isOpen ? "expanded" : "collapsed";
   const children = isOpen && n.children
-    ? renderRows(n.children, depth + 1, state, source, hideDate, activeNode)
+    ? renderRows(n.children, depth + 1, state, hideDate, activeNode)
     : "";
 
   return `<div class="monaco-list-row fe-row fe-folder ${active}" draggable="${source === "fs" && !n.virtual}" data-kind="folder" data-source="${source}" data-path="${esc(n.path)}" ${n.virtual ? 'data-virtual="1"' : ""} data-on-click="toggleFolder" aria-label="${esc(n.name)}">

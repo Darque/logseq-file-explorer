@@ -2,19 +2,21 @@ import type { TreeNode } from "./types";
 import { readdir, stat } from "../fsOps";
 import { state } from "../state";
 
-export async function buildFsTree(): Promise<{
+export interface FsTreeResult {
   tree: TreeNode[];
   rootFolders: string[];
   error?: string;
   graphPath?: string;
-}> {
+}
+
+export async function buildFsTree(): Promise<FsTreeResult> {
   const graph = await logseq.App.getCurrentGraph();
   const root: string | undefined = (graph as any)?.path;
   if (!root) {
     return {
       tree: [],
       rootFolders: [],
-      error: "Files view requires a file-based graph.",
+      error: "Date view requires a file-based graph.",
     };
   }
 

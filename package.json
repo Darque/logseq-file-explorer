@@ -1,7 +1,7 @@
 {
   "name": "logseq-file-explorer",
-  "version": "0.1.0",
-  "description": "Obsidian-style file explorer for Logseq's left sidebar — Files & Pages views, right-click menu, drag-and-drop.",
+  "version": "0.2.0-alpha.1",
+  "description": "Personal-use alpha file explorer for Logseq's left sidebar with Name and Date trees.",
   "author": "kendreaditya",
   "license": "MIT",
   "main": "dist/index.html",

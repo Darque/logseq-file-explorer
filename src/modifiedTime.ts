@@ -86,7 +86,7 @@ export function dateTree(nodes: TreeNode[], namespaceDepth = 1, recentWeeks = 1,
       const visibleParts = namespaceParts(fullParts, isMarkdown ? namespaceDepth : 0);
       const namespaceFolders = visibleParts.slice(0, -1);
       const label = visibleParts[visibleParts.length - 1];
-      const leaf: TreeNode = { ...node, name: label, displayName: label, path: node.path, isLeaf: true };
+      const leaf: TreeNode = { ...node, name: label, isLeaf: true };
       insertPath(result, [group, ...namespaceFolders], leaf, older ? -1 : byHour ? hour : day);
     }
   };

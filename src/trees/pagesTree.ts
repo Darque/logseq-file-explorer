@@ -1,5 +1,5 @@
 import type { TreeNode } from "./types";
-import { buildFsTree, stripExt } from "./fsTree";
+import { buildFsTree, stripExt, type FsTreeResult } from "./fsTree";
 import { parseModifiedTime } from "../modifiedTime";
 import { namespaceParts } from "./namespaceParts";
 
@@ -8,12 +8,11 @@ export async function buildPagesTree(namespaceDepth = 99): Promise<TreeNode[]> {
   const files = await buildFsTree();
   if (files.graphPath && !files.error) return pagesFromFiles(files.tree, namespaceDepth);
 
-  // DB graphs and Logseq builds without filesystem IPC still have a Pages view.
+  // DB graphs and Logseq builds without filesystem IPC still have a Name view.
   return pagesFromApi((await logseq.Editor.getAllPages()) || [], namespaceDepth);
 }
 
-export async function getMaxNamespaceDepth(): Promise<number> {
-  const files = await buildFsTree();
+export async function getMaxNamespaceDepth(files: FsTreeResult): Promise<number> {
   if (files.graphPath && !files.error) {
     let max = 0;
     const visit = (nodes: TreeNode[]) => {
@@ -48,7 +47,7 @@ export function pagesFromFiles(files: TreeNode[], namespaceDepth = 99): TreeNode
       if (!fullParts.length) continue;
       const pageName = node.canonicalPage ? node.pageName : undefined;
       const parts = namespaceParts(fullParts, namespaceDepth);
-      insertPage(result, parts, pageName, node.path, node.modifiedAt, fullParts.join("/"));
+      insertPage(result, parts, pageName, node.path, node.modifiedAt);
     }
     sort(result);
     return result;
@@ -71,7 +70,7 @@ function pagesFromApi(pages: any[], namespaceDepth = 99): TreeNode[] {
     } else {
       const parts = name.split("/").filter(Boolean);
       const visibleParts = namespaceParts(parts, namespaceDepth);
-      insertPage(root, visibleParts, name, `__page/${name}`, parseModifiedTime(page), parts.join("/"));
+      insertPage(root, visibleParts, name, `__page/${name}`, parseModifiedTime(page));
     }
   }
   sort(root);
@@ -81,7 +80,7 @@ function pagesFromApi(pages: any[], namespaceDepth = 99): TreeNode[] {
 }
 
 function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undefined,
-  filePath: string, modifiedAt?: number, displayName?: string) {
+  filePath: string, modifiedAt?: number) {
   let siblings = nodes;
   for (let i = 0; i < parts.length - 1; i++) {
     const prefix = parts.slice(0, i + 1).join("/");
@@ -94,7 +93,7 @@ function insertPage(nodes: TreeNode[], parts: string[], pageName: string | undef
     siblings = folder.children!;
   }
   siblings.push({ name: parts[parts.length - 1], path: filePath, isLeaf: true, pageName,
-    modifiedAt, displayName });
+    modifiedAt });
 }
 
 function sort(nodes: TreeNode[]) {

@@ -1,6 +1,6 @@
 # logseq-file-explorer — Developer Docs
 
-An Obsidian-style file explorer pinned to Logseq's left sidebar. It renders two tree views (Files / Pages), supports drag-and-drop moves, a rich right-click menu, new file/folder creation, and rename/delete. All cross-cutting gotchas — most of them non-obvious unless you've debugged them live — are captured in the docs below.
+An alpha-stage file explorer pinned to Logseq Desktop's left sidebar. It renders Name and Date trees. Start with the [main README](../README.md) for use and limitations; these notes describe the current implementation and its private Logseq interfaces.
 
 ## Read in this order
 
@@ -17,5 +17,5 @@ An Obsidian-style file explorer pinned to Logseq's left sidebar. It renders two 
 
 - Never assume `await apis.doAction([...])` throws on failure. See [ipc.md](ipc.md).
 - Never call `Editor.deletePage` on a non-canonical `.md` file. See [canonical-pages.md](canonical-pages.md).
-- Never write `state` on every click — go through the 200ms debounced `persist()` in `src/main.ts:63`.
+- Persist settings through the debounced `persist()` in `src/main.ts`.
 - Never hardcode colors — always use the `--ls-*` CSS vars so themes follow. See [styling.md](styling.md).

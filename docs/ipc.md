@@ -53,7 +53,7 @@ Because `getLastFsError()` clears on read, call it **once** per error and stash 
 
 ## getApis: graceful degradation
 
-`src/fsOps.ts#getApis` (line 16) tries `window.top.apis` then `window.apis` then returns `null`. A `null` return means no IPC — the Files view will show `"Filesystem API unavailable in this Logseq build."` (see `src/trees/fsTree.ts:27`), and Pages view continues to work because it uses `Editor.getAllPages`.
+`src/fsOps.ts#getApis` tries `window.top.apis` then `window.apis` then returns `null`. Without filesystem IPC, the Date view cannot build a file tree; Name falls back to `Editor.getAllPages()` without physical folder information.
 
 ## When adding a new IPC call
 

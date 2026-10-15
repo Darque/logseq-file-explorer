@@ -8,23 +8,23 @@ We call a file a **canonical page** when it is a `.md` file under `pages/` or `j
 
 ## Where the flag is set
 
-`TreeNode.canonicalPage` is declared in `src/trees/types.ts:1-8`. It is set in `src/trees/fsTree.ts:83-84` inside `buildTree`:
+`TreeNode.canonicalPage` is declared in `src/trees/types.ts`. It is set in `src/trees/fsTree.ts` inside `buildTree`:
 
 ```ts
 const canonical = isLast && !!pn &&
   (partPath.startsWith("pages/") || partPath.startsWith("journals/"));
 ```
 
-In the Pages tree (`src/trees/pagesTree.ts`) we don't bother with the flag — everything there is a real Logseq page by construction, and `contextMenu.ts` treats `source === "page"` as canonical (see `src/contextMenu.ts:88`).
+The Name tree retains this flag when it transforms filesystem leaves. Noncanonical Markdown outside `pages/` and `journals/` remains noncanonical. The API-only fallback identifies its synthetic `__page/` and `__journals/` rows separately.
 
 ## Where the flag is consumed
 
-`src/render.ts:105` emits `data-canonical="1"` on leaf rows that are canonical. `src/contextMenu.ts:82-95` reads it back in `extractRowData`. Branches in `menuItemsFor`:
+`src/render.ts` emits `data-canonical="1"` on canonical leaves. `src/contextMenu.ts` reads it in `extractRowData`. Branches in `menuItemsFor`:
 
-- **Rename**: `src/contextMenu.ts:359-389`
+- **Rename**:
   - Canonical page → `Editor.renamePage(old, new)`
   - Everything else (file, folder, non-canonical `.md`) → `renamePath(oldAbs, newAbs)` IPC
-- **Delete**: `src/contextMenu.ts:391-411`
+- **Delete**:
   - Canonical page → `Editor.deletePage(name)`
   - Everything else → `unlinkPath(repoDir, absPath)` IPC
 
@@ -48,7 +48,6 @@ Result: the user thought they deleted one file; they actually lost their origina
 The fix is the canonical flag. After the fix:
 
 ```ts
-// src/contextMenu.ts:396-408
 if (isPage && data.page && data.canonical) {
   await Editor.deletePage(data.page);        // canonical: safe
 } else {
@@ -78,4 +77,4 @@ If you add any menu item that conceptually mutates a page identity (rename, dele
 - Yes → use `logseq.Editor.*`.
 - No → use raw fs IPC via `src/fsOps.ts`.
 
-Duplicate (`src/contextMenu.ts:252-267`) and Move (`:269-281`) are both raw-fs because they create a new path; `Editor` has no generic "copy page" API, and `renamePage` only handles in-place renames.
+Duplicate and Move in `src/contextMenu.ts` use filesystem operations. Treat those actions carefully for canonical pages because Logseq's database and links may need reconciliation after a path change.

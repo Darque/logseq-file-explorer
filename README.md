@@ -1,68 +1,52 @@
-<div align="center">
-  <img src="icon.svg" width="128" height="128" alt="Logseq File Explorer">
+# Logseq File Explorer
 
-  <h1>Logseq File Explorer</h1>
+An **alpha-stage, vibe-coded plugin for personal use**. Use it at your own risk. It reads graph files through Logseq's Electron bridge and offers file operations that can rename, move, duplicate, or delete them. Keep a backup of your graph before trying those actions. This fork is not a Logseq release or a supported marketplace plugin.
 
-  <p>An Obsidian-style file explorer for Logseq's left sidebar.<br/>
-  Browse pages by namespace or the raw filesystem, with drag-and-drop and a full right-click menu.</p>
-</div>
+This fork of [kendreaditya/logseq-file-explorer](https://github.com/kendreaditya/logseq-file-explorer) adds a file explorer to Logseq Desktop's left sidebar. It has two views:
 
----
+- **Name** groups Markdown pages by their real graph folders and then by filename namespaces. For example, `pages/Note___Guidance___Quick Start.md` appears under `pages → Note/Guidance → Quick Start` when namespace depth is 1.
+- **Date** groups selected graph files by their last filesystem edit time, newest first. Recent files use hour folders such as `15/10/26 08:00`; later files within the chosen week window use day folders; older files share an **Older files** folder. Physical graph folders are flattened in this view. Namespace nesting is set separately for each tab.
 
-## Features
+Both views can show local `dd/mm/yy hh:mm` timestamps beside file names. Within a folder, `contents` appears first, followed by names beginning with `_`.
 
-- **Two views:** _Name_ (graph folders and namespaces) and _Date_ (edited-time folders with namespace nesting).
-- **Native feel:** matches Logseq's sidebar spacing, colors, and typography.
-- **Right-click menu:** new file/folder, duplicate, rename, move, delete, copy path, reveal in Finder, open in default app, open to the right / new window, insert link in today's journal.
-- **Drag-and-drop:** move files between folders with drop-target highlighting.
-- **Journal-aware:** files under `journals/` render with your configured date format.
-- **Edited dates:** each view can show local `dd/mm/yy hh:mm` timestamps in an aligned column, with independent namespace depth settings.
-- **Graph folder filter:** check the graph's root folders in File Explorer settings to choose which files appear in both trees. The list updates when the tree refreshes or the graph changes; choices are saved per graph. Logseq's metadata folder starts unchecked.
-- **Safe file ops:** canonical Logseq pages (under `pages/`, `journals/`) use Logseq's own rename/delete to keep links intact; other files use direct filesystem ops.
-- **Toolbar actions:** New file / New folder / Refresh buttons next to the tab switcher.
-- **Header toggle:** one-click show/hide button in the Logseq title bar.
+## Screenshots
 
-## Installation
+These screenshots were taken in Logseq Desktop with a disposable example graph. They contain no private graph content.
 
-### From source
+| Name view | Date view |
+| --- | --- |
+| [![Name tree with graph folders and namespaces](docs/file-explorer-name-alpha.jpg)](docs/file-explorer-name-alpha.jpg) | [![Date tree with edit time and namespaces](docs/file-explorer-date-alpha.jpg)](docs/file-explorer-date-alpha.jpg) |
 
-1. Clone this repository:
-   ```bash
+## Install from source
+
+1. Install Node.js and npm, then clone this repository:
+   ```sh
    git clone https://github.com/Darque/logseq-file-explorer.git
    cd logseq-file-explorer
-   ```
-2. Install and build:
-   ```bash
    npm install
    npm run build
    ```
-3. In Logseq Desktop: **Settings → Advanced → Developer mode** (on).
-4. Top-right ⋯ menu → **Plugins** → **Load unpacked plugin** → select this folder.
-5. Open any graph; a folder toggle appears in the header and the file tree in the left sidebar.
+2. In **Logseq Desktop**, enable **Developer mode** under **Settings → Advanced**.
+3. Open the top-right **⋯ → Plugins → Load unpacked plugin** and select the cloned `logseq-file-explorer` folder (the folder containing `package.json`, not `dist`).
+4. Click the folder icon in Logseq's header to show or hide the explorer. The button remains visible while the tree is open.
 
-### Development
+After rebuilding, reload the plugin from Logseq's Plugins page or use **View → Reload**. `npm run dev` rebuilds on file changes, but Logseq still needs a reload to pick up the new bundle.
 
-```bash
-npm run dev    # vite build --watch
-```
+## Use the explorer
 
-Reload the plugin from the Plugins page after each rebuild.
+- Choose **Name** or **Date** at the top of the panel. Click a folder to expand or collapse it; click a page to open it. A selected page, or its highest visible collapsed parent, is highlighted.
+- Click the **gear** to open File Explorer settings. The settings panel has separate **Name tab** and **Date tab** sections.
+- Under **Graph folders**, check the root graph directories to include. The same selection feeds both views, is remembered per graph, and refreshes when the graph or tree refreshes. Files loose at the graph root are not included. Logseq's `logseq` metadata folder starts unchecked.
+- Set **Namespace nest depth** separately for each view. `0` shows namespaces in the file name; `1` makes one parent namespace folder and combines any remaining namespace components there. **All** nests every namespace component. A value above the graph's maximum becomes **All**; a negative value becomes `0`.
+- **Hide file date/time** removes the timestamp column in that view. In the Date tab, **Recent edits (hours)** controls the hour groups and **Recent edits (weeks)** controls when files move into **Older files**. The default is 24 hours and 1 week. Cutoffs are recalculated when the tree loads or refreshes.
+- Use the toolbar buttons to create a file or folder, or refresh the tree. Right-click rows for available file actions. Native Logseq pages use Logseq's page operations for rename and delete; other files use filesystem operations.
+- A full-name tooltip appears on pointer hover only when a file name is truncated.
 
-## How it works
+## Limits and development notes
 
-Logseq exposes no official API to add a section to the left sidebar. This plugin uses `logseq.provideUI({ path, template })` to inject HTML into the host document's `.left-sidebar-inner` container, and talks to Logseq's Electron IPC bridge (`window.top.apis.doAction(...)`) for filesystem operations that the public plugin API doesn't cover (readdir, mkdir, rename, unlink, copyFile, openPath, openFileInFolder).
+- The Date view and graph-folder filter require a **file-based Logseq Desktop graph**. Database-only graphs can show a page-list fallback in Name, without real folder information.
+- The plugin uses Logseq's private sidebar selectors and Electron IPC. A Logseq update may change those interfaces and break rendering or file operations.
+- Drag-to-move is experimental and limited to physical, noncanonical items. Namespace and date folders are virtual and cannot receive file drops. Back up the graph before using move, rename, or delete.
+- This repository has no automated release pipeline or compatibility guarantee. See [developer notes](docs/README.md) for implementation details.
 
-- **Pages tree:** for file-based graphs, Markdown files follow their real folders and then split `___` filename namespaces into nested groups. DB graphs fall back to `logseq.Editor.getAllPages()` split by `/`.
-- **Folder source:** `readdir` IPC against the graph root supplies both trees. Only files inside checked root folders are included; loose files at the graph root are omitted.
-- **Click handlers:** `logseq.provideModel` with `data-on-click` attributes.
-- **Theme-safe:** all styles use Logseq's CSS variables (`--ls-*`).
-
-## Limitations
-
-- The sidebar selector (`.left-sidebar-inner > .flex.flex-col.wrap`) is unofficial — a Logseq UI refactor could break rendering.
-- The Date view and graph-folder filter need a file-based graph (not DB-only).
-- Folder rename is not yet supported from the context menu (only file/page rename).
-
-## License
-
-MIT.
+MIT license.

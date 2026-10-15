@@ -122,6 +122,7 @@ function resolveDropTarget(
 ): DropTarget | null {
   // Dropping on a folder row → drop INTO that folder.
   if (row && row.dataset.kind === "folder") {
+    if (row.dataset.source !== "fs") return null;
     const relPath = row.dataset.path || "";
     if (relPath === srcPath) return null; // drop on self
     if (relPath.startsWith(srcPath + "/")) return null; // drop into own descendant
@@ -131,8 +132,10 @@ function resolveDropTarget(
 
   // Dropping on a file row → treat as dropping into its parent folder (no-op if same).
   if (row && (row.dataset.kind === "file" || row.dataset.kind === "page")) {
+    if (row.dataset.source !== "fs") return null;
     const rel = row.dataset.path || "";
     const parent = dirname(rel);
+    if (parent === srcPath || parent.startsWith(srcPath + "/")) return null;
     if (dirname(srcPath) === parent) return null;
     return { el: row, relPath: parent };
   }

@@ -1,87 +1,27 @@
-# Trees
+# Trees and sorting
 
-Two separate tree builders, both producing `TreeNode[]` (`src/trees/types.ts:1-8`).
+Both views use `TreeNode[]` from `src/trees/types.ts` and the selected root graph folders from `src/trees/fsTree.ts`.
 
-## Pages tree — `src/trees/pagesTree.ts`
+## Filesystem scan and root selection
 
-For file-based graphs, Pages starts with the Files tree and keeps Markdown files. Real graph directories stay as folders. Within each directory, a filename such as `Note___Research___Example.md` becomes `Note → Research → Example`; its file path remains attached to the leaf. Markdown outside Logseq's canonical `pages/` and `journals/` folders opens as a file rather than creating a page with a guessed name. Synthetic namespace folders have stable expansion state and no file-operations context menu.
+`buildFsTree()` asks Logseq's Electron `readdir` IPC for graph paths, normalizes returned strings or path objects, discovers root folders, and builds a physical tree from files in selected roots. Loose files at the graph root are omitted. Root folder choices are stored per graph in `State.folderSelections`; `logseq`, `.git`, `.obsidian`, and `node_modules` start unchecked. The scan runs on tree refresh, so newly added root folders appear in settings.
 
-When the filesystem API is unavailable, Pages falls back to `logseq.Editor.getAllPages()` and groups page names by `/`. The fallback has no physical-folder information.
+`fileToPage()` maps canonical `pages/*.md` and `journals/*.md` filenames to Logseq page names. Journals use the configured preferred date format. Other Markdown files retain a derived page name where useful, but `canonicalPage` is false so context-menu rename and delete use filesystem operations.
 
-Visible file leaves show their filesystem modification time in local system time as `dd/mm/yy hh:mm` (24-hour clock). A right-aligned date column keeps times lined up across each folder and namespace group even when labels have different lengths. The plugin requests `stat` only for leaves in expanded folders and caches the result until Refresh or a graph/database change. In the API-only fallback, dates use the page's `updatedAt` value when Logseq provides one.
+## Name view
 
-- Journal files stay in their physical `journals` folder. In the API fallback, journal pages use a synthetic `journals` root.
-- In the API fallback, pages whose name starts with `$` are skipped; these are internal Logseq system pages.
+`pagesFromFiles()` keeps Markdown leaves and physical folders, then splits `___` filename namespaces. `namespaceParts()` limits the number of parent namespace folders. At depth `0`, the namespace path appears in the leaf label. At depth `1`, extra namespace components share the first parent label, such as `Note/Guidance`; the leaf is `Quick Start`.
 
-Sort order: folders before leaves; within a level, `localeCompare` alphabetical. In the API fallback, journals are sorted descending and placed first.
+When filesystem IPC is unavailable, `pagesFromApi()` builds a page-name tree from `Editor.getAllPages()` using `/` namespace separators. It has no physical-folder data.
 
-## Files tree — `src/trees/fsTree.ts`
+## Date view
 
-Source: `readdir(graph.path)` IPC. `readdir` in Logseq is **recursive** — it returns all paths under the graph root in one call. We normalize in `normalizeReaddir` (line 44-51) because the IPC has returned both `string[]` and `{path, isDirectory}[]` shapes in different Logseq versions.
+`addModifiedTimes()` fetches and caches filesystem times; Name requests visible leaves, while Date requests all selected files so it can sort them. Refresh, graph changes, and DB changes clear the cache.
 
-### Ignored paths
+`dateTree()` flattens physical folders. Files newer than the hour cutoff go into local `dd/mm/yy hh:00` folders. Other files within the week window use `dd/mm/yy` folders. Earlier files go into `Older files`. The cutoffs are recalculated on tree load or refresh. Namespace grouping remains optional inside each date folder.
 
-`src/trees/fsTree.ts:5` — hardcoded set:
+Date folders sort newest first. Within folders, `contents` sorts first, then names beginning with `_`; other file leaves are ordered by modification time. The visible timestamp is formatted in local system time as `dd/mm/yy hh:mm`.
 
-```ts
-const IGNORED = new Set([".git", "node_modules", ".DS_Store", ".obsidian", "logseq"]);
-```
+## Rendering
 
-Plus anything whose last path component starts with `.` (line 63). `logseq` is ignored because its contents are config/backups, not user content.
-
-To add an ignored path, extend the `IGNORED` set. Folders with spaces or special characters work fine — this is a `Set<string>` lookup against each path component via `parts.some(p => IGNORED.has(p))`.
-
-### Tree build
-
-`buildTree` (line 70-100) splits each relative path by `/`, walks into the nested structure, and creates `TreeNode` entries. The `canonicalPage` flag is set here — see [canonical-pages.md](canonical-pages.md).
-
-Sort (line 119-126): folders first, then `localeCompare`, recursively.
-
-## Journal date formatting
-
-Journal filenames are normalized to pretty dates via `fileToPage()` (line 102-117):
-
-```ts
-if (base.startsWith("journals/")) {
-  const name = base.slice(9);
-  const m = name.match(/^(\d{4})[_-](\d{2})[_-](\d{2})$/);
-  if (m) {
-    const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    return formatDate(date, state.dateFormat);
-  }
-  return name;
-}
-```
-
-- Matches BOTH legacy `YYYY_MM_DD.md` and current `YYYY-MM-DD.md` filename formats. LogSeq vaults commonly mix both — don't normalize filenames.
-- Format string comes from `state.dateFormat`, loaded at startup from `App.getUserConfigs().preferredDateFormat` (`src/main.ts:73-77`). Default is `"MMM do, yyyy"` (`src/state.ts:17`).
-- `formatDate` (line 149-169) supports: `EEEE` (full weekday), `EEE` (short weekday), `MMMM`, `MMM`, `MM`, `yyyy`, `yy`, `do` (ordinal day), `dd`, `d`.
-
-The `\bd\b` boundary on the `d` token matters (line 164) — without it, `d` would match inside `do`/`dd`/weekday tokens.
-
-## File-to-page mapping
-
-`fileToPage` (line 102) determines whether a leaf is a Logseq page:
-
-- `pages/Foo.md` → page name `Foo`, with `___` → `/` (the LogSeq namespace escape)
-- `pages/Foo___Bar.md` → `Foo/Bar`
-- `journals/2026-04-17.md` → formatted per `state.dateFormat`
-- `aspirations/Reading List.md` → `Reading List` (page name derived) **but** `canonicalPage` stays `false` so rename/delete route to raw fs ops
-- Non-`.md` files → `pageName` is `undefined`, treated as a plain file
-
-The distinction between "has `pageName`" and "`canonicalPage === true`" is subtle but load-bearing — see [canonical-pages.md](canonical-pages.md).
-
-## Rendering derived from tree
-
-`src/render.ts#renderRow` (line 78) reads the TreeNode and decides:
-
-- Leaf with `pageName` → clickable row routed through `openPage` in the model.
-- Leaf without `pageName` → routed through `openFile` (which reveals in Finder — `src/main.ts:115-124`).
-- Non-leaf → folder, click toggles `state.open` via `toggleFolder`.
-
-The `fe-ext` label (`src/render.ts:97-103`) is the obsidian-style dim extension suffix — only shown when `source === "fs"` AND the file has an extension. Pages never show an extension.
-
-
-## Name and Date views
-
-Name shows Markdown pages in physical graph folders and filename namespaces. Date shows filesystem entries grouped by modification year, month, day and hour in descending order, then physical folders and (for Markdown pages) namespaces. Contents pages sort first in each folder, followed by underscore names. Each view has its own hide-date and namespace-depth settings. Namespace depth zero keeps the full remaining name in the parent folder; a positive value creates that many namespace folders and displays the remaining namespace path with `/`.
+`src/render.ts` turns leaves into page or file rows, adds the timestamp column when enabled, and highlights the current page or its highest visible collapsed parent. A tooltip is populated only when a file label overflows. Physical, noncanonical rows are marked as filesystem sources; virtual namespace and date folders are not valid drag-and-drop destinations.
