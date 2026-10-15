@@ -1,3 +1,7 @@
 node_modules
 dist
 *.log
+.DS_Store
+.local/
+fixtures/demo-graph/.git
+fixtures/demo-graph/logseq/bak/

@@ -11,7 +11,8 @@ Both views can show local `dd/mm/yy hh:mm` timestamps beside file names. Within 
 
 ## Screenshots
 
-These screenshots were taken in Logseq Desktop with a disposable example graph. They contain no private graph content.
+These screenshots were taken in Logseq Desktop with a dedicated example graph. They contain no private graph content.
+The sample graph is retained in [`fixtures/demo-graph`](fixtures/demo-graph/README.md) so the views can be checked again.
 
 | Name view | Date view |
 | --- | --- |
@@ -42,11 +43,17 @@ After rebuilding, reload the plugin from Logseq's Plugins page or use **View →
 - Use the toolbar buttons to create a file or folder, or refresh the tree. Right-click rows for available file actions. Native Logseq pages use Logseq's page operations for rename and delete; other files use filesystem operations.
 - A full-name tooltip appears on pointer hover only when a file name is truncated.
 
+## Maintenance
+
+- Work from this repository checkout. `fixtures/demo-graph/` is the sample graph used for visual checks and screenshot updates; see its README for loading and refreshing its sample dates.
+- `npm ci`, `npm run build`, and `./node_modules/.bin/tsc --noEmit --noUnusedLocals --noUnusedParameters` verify a source checkout. `dist/` and `node_modules/` are generated locally and are not committed.
+- This fork retains credit to the [original source](https://github.com/kendreaditya/logseq-file-explorer). Commits belong to [Darque/logseq-file-explorer](https://github.com/Darque/logseq-file-explorer); the original repository is not a push destination. Source pushes run a build check, but do not publish a release.
+
 ## Limits and development notes
 
 - The Date view and graph-folder filter require a **file-based Logseq Desktop graph**. Database-only graphs can show a page-list fallback in Name, without real folder information.
 - The plugin uses Logseq's private sidebar selectors and Electron IPC. A Logseq update may change those interfaces and break rendering or file operations.
 - Drag-to-move is experimental and limited to physical, noncanonical items. Namespace and date folders are virtual and cannot receive file drops. Back up the graph before using move, rename, or delete.
-- This repository has no automated release pipeline or compatibility guarantee. See [developer notes](docs/README.md) for implementation details.
+- This repository has no automatic release publication or compatibility guarantee. See [developer notes](docs/README.md) for implementation details.
 
 MIT license.

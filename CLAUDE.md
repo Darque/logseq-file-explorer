@@ -2,6 +2,8 @@
 
 Alpha-stage personal-use file explorer plugin for Logseq's left sidebar. See `README.md` and `docs/` before changing code.
 
+This checkout lives at `/Users/phil/ai/logseq-file-explorer`. Read `AGENTS.md` and `.agents/skills/logseq-file-explorer/SKILL.md` for repository boundaries and the screenshot fixture.
+
 ## Read first
 
 - [Architecture](docs/architecture.md) — how the plugin mounts, renders, and listens

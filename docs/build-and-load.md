@@ -2,6 +2,10 @@
 
 See the [main README](../README.md) for installation and the alpha-stage warning.
 
+The maintained checkout is `/Users/phil/ai/logseq-file-explorer`. Use its [`fixtures/demo-graph`](../fixtures/demo-graph/README.md) for visual checks and screenshot updates. The installed copy under `~/.logseq/plugins/logseq-file-explorer` is a deployment copy, not the source checkout.
+
+If Logseq is still using that installed copy, a source build alone does not update it. After building in this checkout, copy `dist/index.html`, `dist/assets/`, `package.json`, `icon.svg`, and `README.md` into `~/.logseq/plugins/logseq-file-explorer/`, then reload the plugin. Keep all source edits in this checkout.
+
 ```sh
 npm install
 npm run build       # one-shot Vite build into dist/
